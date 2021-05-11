@@ -1,33 +1,45 @@
-﻿Shorthand,Site,Lat,Long,Elevation (m)
-FR,Feather River,40.02192,-121.16808,787
-TM1,Table Mountain 1,39.5987,-121.54554,411.4599208
-TM2,Table Mountain 2,39.59255,-121.55072,379.1526973
-CC,Canyon Creek,39.58597,-121.43311,
-DPR,Drum Powerhouse Road,39.22846,-120.81518,1018.591893
-IH,Iowa Hill,39.09332,-120.92114,454.1298385
-WL4,Wright's Lake 4,38.84454,-120.23134,2131.36239
-WL3,Wright's Lake 3,38.83528,-120.23824,2137.762877
-WL2,Wright's Lake 2,38.8263,-120.25242,2020.115818
-WL1,Wright's Lake 1,38.78608,-120.2143,1613.837245
-CP3,Carson Pass 3,38.70649,-120.08797,2266.382201
-CP2,Carson Pass 2,38.66169,-120.13065,2244.132886
-CP1,Carson Pass 1,38.6382,-120.1422,2422.432185
-SC,Sutter Creek,38.41167,-120.73583,421.5178299
-YOSE5,Yosemite 5,37.85786,-119.64779,2466.930814
-YOSE8,Yosemite 8,37.81117,-119.48624,2590.97836
-YOSE7,Yosemite 7,37.80903,-119.56605,2469.978665
-YOSE1,Yosemite 1,37.66374,-119.62484,2140.505943
-BH,Ben Hur,37.40985,-119.96458,511.4294422
-KC1,Kings Canyon,36.82968,-118.86903,
-KC2,Kings Canyon,36.82301,-118.83542,
-KC3,Kings Canyon,36.78231,-118.62575,
-SQ3,Seqouia,36.72109,-118.84933,
-SQ2,Seqouia,36.66557,-118.83543,
-SQ1,Seqouia,36.56435,-118.7764,
-WV,Weaverville,40.74084,-123.00364,
-LVTR,Lassen,40.47929,-121.50282,
-LV1,Lassen,40.47471,-121.50486,
-LV3,Lassen,40.4664,-121.52311,
-LV2,Lassen,40.46563,-121.51487,
-SHA,Shasta,40.40811,-123.33894,
-BB,Bidwell bridge,39.55355,-121.4329,282.8544
+Shorthand,Site,Lat,Long,Elevation_m,Visited
+FR,Feather River,40.02192,-121.16808,787,yes
+TM1,Table Mountain 1,39.5987,-121.54554,411.4599208,yes
+TM2,Table Mountain 2,39.59255,-121.55072,379.1526973,yes
+CC,Canyon Creek,39.58597,-121.43311,,yes
+DPR,Drum Powerhouse Road,39.22846,-120.81518,1018.591893,yes
+IH,Iowa Hill,39.09332,-120.92114,454.1298385,yes
+WL4,Wright's Lake 4,38.84454,-120.23134,2131.36239,yes
+WL3,Wright's Lake 3,38.83528,-120.23824,2137.762877,yes
+WL2,Wright's Lake 2,38.8263,-120.25242,2020.115818,yes
+WL1,Wright's Lake 1,38.78608,-120.2143,1613.837245,yes
+CP3,Carson Pass 3,38.70649,-120.08797,2266.382201,yes
+CP2,Carson Pass 2,38.66169,-120.13065,2244.132886,yes
+CP1,Carson Pass 1,38.6382,-120.1422,2422.432185,yes
+SC,Sutter Creek,38.41167,-120.73583,421.5178299,yes
+YOSE5,Yosemite 5,37.85786,-119.64779,2466.930814,yes
+YOSE8,Yosemite 8,37.81117,-119.48624,2590.97836,yes
+YOSE7,Yosemite 7,37.80903,-119.56605,2469.978665,yes
+YOSE1,Yosemite 1,37.66374,-119.62484,2140.505943,yes
+BH,Ben Hur,37.40985,-119.96458,511.4294422,yes
+KC1,Kings Canyon,36.82968,-118.86903,,yes
+KC2,Kings Canyon,36.82301,-118.83542,,yes
+KC3,Kings Canyon,36.78231,-118.62575,,yes
+SQ3,Seqouia,36.72109,-118.84933,,yes
+SQ2,Seqouia,36.66557,-118.83543,,yes
+SQ1,Seqouia,36.56435,-118.7764,,yes
+WV,Weaverville,40.74084,-123.00364,,yes
+LVTR,Lassen,40.47929,-121.50282,,yes
+LV1,Lassen,40.47471,-121.50486,,yes
+LV3,Lassen,40.4664,-121.52311,,yes
+LV2,Lassen,40.46563,-121.51487,,yes
+SHA,Shasta,40.40811,-123.33894,,yes
+BB,Bidwell bridge,39.55355,-121.4329,282.8544,yes
+SCML,"Snow Camp Mountain Lookout, Curry County, Oregon",42.344505,-124.165469,1268 (google),no
+CBR,"Carberry Road, Jackson County, Rogue River Nationall Forest",42.06398,-123.16427,676,no
+KR,"Klamath Ranges, Salmon Mountains, Music Creek Trailhead Road, Siskiyou county, CA",41.329722,-122.998056,,no
+EGR,"Eddy Gulch Road, Forks of Salmon, Siskiyou County, CA",41.1878,-123.139568,1055 (google),no
+HV,"Hoopa Valley Reservation, Six Rivers National Forest, Sisikyou County CA",41.161944,-123.69,140,no
+TLR,"Tiltlow Rd, Humboldt",40.87957,-123.7602,966,no
+TRBC,"Trinity River x Bidden Creek corner, Trinity County, off of Highway 299",40.790278,-123.456389,,no
+TFCR,"Tyler Foote Crossing Road. Middle Yuba River Canyon, Sierra County CA",39.41956,-120.9513,704,no
+GM,Gwin Mine,38.28756,-120.75341,202.692,no
+SHP,"Sagehen Peak, Mono County, CA",37.8579,-118.8471,2649,no
+MLB,"Mammoth Lakes Basin, Mono county,",37.588472,-118.980083,2935,no
+PM,"Pine Mtn, San Luis County",35.68418,-121.08445,914,no
