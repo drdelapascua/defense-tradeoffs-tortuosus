@@ -6,6 +6,7 @@
 library(ggplot2)
 library(tidyr)
 library(dplyr)
+library(emmeans)
 
 #data ----
 dat <- read.csv("data/pilot_GSL_data_clean.csv")
@@ -236,52 +237,111 @@ summary(BHm11)
 # > big model with everything ---- 
 
 # 3MSO
-bigm1 <- lm(X3MSO ~ trt + Population + sample_time + trt*Population + trt*sample_time + sample_time*Population + trt*Population*sample_time, data = dat)
+bigm1 <- lm(X3MSO ~ trt + Population + sample_time + trt*Population + trt*sample_time + 
+              sample_time*Population + trt*Population*sample_time, data = dat)
 summary(bigm1)
+anova(bigm1)
+
+emmeans(bigm1, pairwise ~ trt*sample_time|Population, at = list(sample_time ="24") )
+#control higher than CW or no diff
+emmeans(bigm1, pairwise ~ trt*sample_time|Population, at = list(sample_time ="72") )
+#no diff
+emmeans(bigm1, pairwise ~ trt*sample_time|Population, at = list(sample_time ="168") )
+#no diff
 
 #4MSO
 bigm2 <- lm(X4MSO ~ trt + Population + sample_time + trt*Population + trt*sample_time + sample_time*Population + trt*Population*sample_time, data = dat)
 summary(bigm2)
+anova(bigm2)
+
+emmeans(bigm2, pairwise ~ trt*sample_time|Population, at = list(sample_time ="24") )
+#no diff
+emmeans(bigm2, pairwise ~ trt*sample_time|Population, at = list(sample_time ="72") )
+#no diff
+emmeans(bigm2, pairwise ~ trt*sample_time|Population, at = list(sample_time ="168") )
+#no diff
 
 #allyl
 bigm3 <- lm(Allyl ~ trt + Population + sample_time + trt*Population + trt*sample_time + sample_time*Population + trt*Population*sample_time, data = dat)
 summary(bigm3)
+anova(bigm3)
+
+emmeans(bigm3, pairwise ~ trt*sample_time|Population) 
+#no sig differences
 
 #but-3-enyl
 bigm4 <- lm(but.3.enyl ~ trt + Population + sample_time + trt*Population + trt*sample_time + sample_time*Population + trt*Population*sample_time, data = dat)
 summary(bigm4)
+anova(bigm4)
+
+emmeans(bigm4, pairwise ~ trt*sample_time|Population) 
+#no sig differences 
 
 # 3C modified
 bigm5 <- lm(X3C.modified ~ trt + Population + sample_time + trt*Population + trt*sample_time + sample_time*Population + trt*Population*sample_time, data = dat)
 summary(bigm5)
+anova(bigm5)
+
+emmeans(bigm5, pairwise ~ trt*sample_time|Population) 
+#no differences within time points
 
 # 8MSOO
 bigm6 <- lm(X8MSOO ~ trt + Population + sample_time + trt*Population + trt*sample_time + sample_time*Population + trt*Population*sample_time, data = dat)
 summary(bigm6)
+anova(bigm6)
 
 # indol
 bigm7 <- lm(indol ~ trt + Population + sample_time + trt*Population + trt*sample_time + sample_time*Population + trt*Population*sample_time, data = dat)
 summary(bigm7)
+anova(bigm7)
+
+emmeans(bigm7, pairwise ~ trt*sample_time|Population, at = list(sample_time ="24") )
+#no sig diff
+emmeans(bigm7, pairwise ~ trt*sample_time|Population, at = list(sample_time ="72") )
+#no sig diff
+emmeans(bigm7, pairwise ~ trt*sample_time|Population, at = list(sample_time ="168") )
+#no sig diff
+
 
 # 4C modified
 bigm8 <- lm(X4C.modified ~ trt + Population + sample_time + trt*Population + trt*sample_time + sample_time*Population + trt*Population*sample_time, data = dat)
 summary(bigm8)
+anova(bigm8)
+
+emmeans(bigm8, pairwise ~ trt*sample_time|Population, at = list(sample_time ="24") )
+#no sig diff
+emmeans(bigm8, pairwise ~ trt*sample_time|Population, at = list(sample_time ="72") )
+#no sig diff
+emmeans(bigm8, pairwise ~ trt*sample_time|Population, at = list(sample_time ="168") )
+#no sig diff
+
 
 # favonol sulfates
 bigm9 <- lm(flavonol.sulfate.or.f.gsl ~ trt + Population + sample_time + trt*Population + trt*sample_time + sample_time*Population + trt*Population*sample_time, data = dat)
 summary(bigm9)
+anova(bigm9)
 
 # indol 1
 bigm10 <- lm(indol.1 ~ trt + Population + sample_time + trt*Population + trt*sample_time + sample_time*Population + trt*Population*sample_time, data = dat)
 summary(bigm10)
+anova(bigm10)
+
+emmeans(bigm10, pairwise ~ trt*sample_time|Population, at = list(sample_time ="24") )
+#no sig diff
+emmeans(bigm10, pairwise ~ trt*sample_time|Population, at = list(sample_time ="72") )
+#no sig diff
+emmeans(bigm10, pairwise ~ trt*sample_time|Population, at = list(sample_time ="168") )
+#no sig diff
+
 
 # flavonol
 bigm11 <- lm(flavonol ~ trt + Population + sample_time + trt*Population + trt*sample_time + sample_time*Population + trt*Population*sample_time, data = dat)
 summary(bigm11)
+anova(bigm11)
 
 # posthoc tests ----
 
 # use EM means package to get the estimates at the different - estimated marginal means - these are estimates given other factors given the model. gives estimates marginal means, confidence limits etc. 
 # emmeans also can do posthoc comparissons to look at estimate of differences. know which are highest, which are different (post hoc!)
-
 #emmeans(bigm1, pairwise ~)
+
