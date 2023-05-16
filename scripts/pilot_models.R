@@ -10,10 +10,83 @@ library(dplyr)
 #data ----
 dat <- read.csv("data/pilot_GSL_data_clean.csv")
 
+# run sample time as a factor
+dat$sample_time <- as.factor(dat$sample_time)
+
 #data visualization ----
 
-# treatment comparison across time
+#3MSO
+plot.3MSO <- ggplot(data = dat, aes(x = sample_time, y = X3MSO)) +
+  geom_boxplot(aes(fill = trt)) +
+  facet_wrap(~Population)
+plot.3MSO
 
+#4MSO
+plot.4MSO <- ggplot(data = dat, aes(x = sample_time, y = X4MSO)) +
+  geom_boxplot(aes(fill = trt)) +
+  facet_wrap(~Population)
+plot.4MSO
+
+#Allyl
+plot.allyl <- ggplot(data = dat, aes(x = sample_time, y = Allyl)) +
+  geom_boxplot(aes(fill = trt)) +
+  facet_wrap(~Population)
+plot.allyl
+
+#but-3-enyl 
+plot.but.3.enyl <- ggplot(data = dat, aes(x = sample_time, y = but.3.enyl)) +
+  geom_boxplot(aes(fill = trt)) +
+  facet_wrap(~Population)
+plot.but.3.enyl
+
+#3c modified
+plot.3C.modified <- ggplot(data = dat, aes(x = sample_time, y = X3C.modified)) +
+  geom_boxplot(aes(fill = trt)) +
+  facet_wrap(~Population)
+plot.3C.modified
+
+#X8MSOO
+plot.8MSOO <- ggplot(data = dat, aes(x = sample_time, y = X8MSOO)) +
+  geom_boxplot(aes(fill = trt)) +
+  facet_wrap(~Population)
+plot.8MSOO
+
+#indol
+plot.indol <- ggplot(data = dat, aes(x = sample_time, y = indol)) +
+  geom_boxplot(aes(fill = trt)) +
+  facet_wrap(~Population)
+plot.indol
+
+#4C modified
+plot.4C.modified <- ggplot(data = dat, aes(x = sample_time, y = X4C.modified)) +
+  geom_boxplot(aes(fill = trt)) +
+  facet_wrap(~Population)
+plot.4C.modified
+
+#flavonol.sulfate.or.f.gsl
+plot.f.gsl <- ggplot(data = dat, aes(x = sample_time, y = flavonol.sulfate.or.f.gsl)) +
+  geom_boxplot(aes(fill = trt)) +
+  facet_wrap(~Population)
+plot.f.gsl
+
+#indol.1
+plot.indol.1 <- ggplot(data = dat, aes(x = sample_time, y = indol.1)) +
+  geom_boxplot(aes(fill = trt)) +
+  facet_wrap(~Population)
+plot.indol.1
+
+#flavonol
+plot.flavonol <- ggplot(data = dat, aes(x = sample_time, y = flavonol)) +
+  geom_boxplot(aes(fill = trt)) +
+  facet_wrap(~Population)
+plot.flavonol
+
+#Gen-cov aka pop differences (egentic covariance calculated by allyl/sum of allyl and butenyl)
+plot.gencov <- ggplot(data = dat, aes(x = sample_time, y = Gen_cov)) +
+  geom_boxplot(aes(fill = trt)) +
+  facet_wrap(~Population)
+plot.gencov
+#Ben Hur has more allyls, table moutian has more butanyl
 
 #linear models ----
 
@@ -206,5 +279,9 @@ summary(bigm10)
 bigm11 <- lm(flavonol ~ trt + Population + sample_time + trt*Population + trt*sample_time + sample_time*Population + trt*Population*sample_time, data = dat)
 summary(bigm11)
 
-# model diagnostics ----
+# posthoc tests ----
 
+# use EM means package to get the estimates at the different - estimated marginal means - these are estimates given other factors given the model. gives estimates marginal means, confidence limits etc. 
+# emmeans also can do posthoc comparissons to look at estimate of differences. know which are highest, which are different (post hoc!)
+
+#emmeans(bigm1, pairwise ~)
