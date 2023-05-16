@@ -339,6 +339,13 @@ bigm11 <- lm(flavonol ~ trt + Population + sample_time + trt*Population + trt*sa
 summary(bigm11)
 anova(bigm11)
 
+emmeans(bigm11, pairwise ~ trt*sample_time|Population, at = list(sample_time ="24") )
+#no sig diff
+emmeans(bigm11, pairwise ~ trt*sample_time|Population, at = list(sample_time ="72") )
+#no sig diff
+emmeans(bigm11, pairwise ~ trt*sample_time|Population, at = list(sample_time ="168") )
+#no sig diff
+
 # posthoc tests ----
 
 # use EM means package to get the estimates at the different - estimated marginal means - these are estimates given other factors given the model. gives estimates marginal means, confidence limits etc. 
