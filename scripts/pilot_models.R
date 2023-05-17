@@ -6,6 +6,7 @@
 library(ggplot2)
 library(tidyr)
 library(dplyr)
+library(emmeans)
 
 #data ----
 dat <- read.csv("data/pilot_GSL_data_clean.csv")
@@ -93,49 +94,49 @@ plot.gencov
 # > simple linear models ----
 
 # 3MSO
-m1 <- lm(X3MSO ~ trt + Population + sample_time, data = dat)
-summary(m1)
+#m1 <- lm(X3MSO ~ trt + Population + sample_time, data = dat)
+#summary(m1)
 
 
 # 4MSO
-m2 <- lm(X4MSO ~ trt + Population + sample_time, data = dat )
-summary(m2)
+#m2 <- lm(X4MSO ~ trt + Population + sample_time, data = dat )
+#summary(m2)
 
 #Allyl
-m3 <- lm(Allyl ~ trt + Population + sample_time, data = dat)
-summary(m3)
+#m3 <- lm(Allyl ~ trt + Population + sample_time, data = dat)
+#summary(m3)
 
 #but-3-enyl
-m4 <- lm(but.3.enyl ~ trt + Population + sample_time, data = dat)
-summary(m4)
+#m4 <- lm(but.3.enyl ~ trt + Population + sample_time, data = dat)
+#summary(m4)
 
 # 3C Modified
-m5 <- lm(X3C.modified ~ trt + Population + sample_time, data = dat)
-summary(m5)
+#m5 <- lm(X3C.modified ~ trt + Population + sample_time, data = dat)
+#summary(m5)
 
 # 8MSOO
-m6 <- lm(X8MSOO ~ trt + Population + sample_time, data = dat)
-summary(m6)
+#m6 <- lm(X8MSOO ~ trt + Population + sample_time, data = dat)
+#summary(m6)
 
 #indol
-m7 <- lm(indol ~ trt + Population + sample_time, data = dat)
-summary(m7)
+#m7 <- lm(indol ~ trt + Population + sample_time, data = dat)
+#summary(m7)
 
 # 4C modified
-m8 <- lm(X4C.modified ~ trt + Population + sample_time, data = dat)
-summary(m8)
+#m8 <- lm(X4C.modified ~ trt + Population + sample_time, data = dat)
+#summary(m8)
 
 #flavanol sulfate
-m9 <- lm(flavonol.sulfate.or.f.gsl ~ trt + Population + sample_time, data = dat)
-summary(m9)
+#m9 <- lm(flavonol.sulfate.or.f.gsl ~ trt + Population + sample_time, data = dat)
+#summary(m9)
 
 #indol 1
-m10 <- lm(indol.1 ~ trt + Population + sample_time, data = dat)
-summary(m10)
+#m10 <- lm(indol.1 ~ trt + Population + sample_time, data = dat)
+#summary(m10)
 
 #flavonol
-m11 <- lm(flavonol ~ trt + Population + sample_time, data = dat)
-summary(m11)
+#m11 <- lm(flavonol ~ trt + Population + sample_time, data = dat)
+#summary(m11)
 
 
 # > only table mountain ----
@@ -284,4 +285,6 @@ summary(bigm11)
 # use EM means package to get the estimates at the different - estimated marginal means - these are estimates given other factors given the model. gives estimates marginal means, confidence limits etc. 
 # emmeans also can do posthoc comparissons to look at estimate of differences. know which are highest, which are different (post hoc!)
 
-#emmeans(bigm1, pairwise ~)
+# My relationship: means comparisons across Cabbage White (CW) and Control (C) treatments across timepoints
+
+#emmeans(bigm1, pairwise ~ )
