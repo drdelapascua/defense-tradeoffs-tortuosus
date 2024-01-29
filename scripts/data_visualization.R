@@ -12,12 +12,14 @@ library(ggplot2)
 ### > load data ----
 data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl.csv")
 
+### > prep data ----
+
 # filter so only the racks with D1-D6 are included
 to_keep <- c("D1", "D2", "D3", "D4", "D5", "D6")
 d = data %>%
   filter(data$Rack.. %in% to_keep)
 
-### > GSL compounds by population & treatment
+### > GSL compounds by population & treatment ----
 
 # 3MSO
 
@@ -123,3 +125,42 @@ Indole_by_pop <- ggplot(data = d, aes(x = Population, y =Indole_18.8, fill = tre
   geom_boxplot()
 
 Indole_by_pop
+
+# > each compound by biomass & population ----
+
+# q - use control or cw or both?
+
+# separate by population
+
+# 3MSO
+
+# OH-Alkenyl
+
+# 4MSO
+
+# Allyl
+
+# 5MSO
+
+# Butenyl
+
+# 3MT
+
+# MSOO
+
+# OH-I3M
+
+# 4MT
+
+# Flavonol 16
+
+# I3M
+
+# Flavonol 17
+
+# Flavonol 18
+
+# indole 
+
+# > Multivariate analysis - PCA of compounds ----
+
