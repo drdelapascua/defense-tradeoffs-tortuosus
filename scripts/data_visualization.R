@@ -8,9 +8,49 @@
 library(tidyr)
 library(dplyr)
 library(ggplot2)
+library("FactoMineR")
+library(ggcorrplot)
+library('corrr')
+library(factoextra)
 
 ### > load data ----
 data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv")
+
+### > Stacked bar plot ----
+
+ggplot(data, aes(x = reorder(Population, Elevation), y = , fill = treatment))
+
+
+### > PCA for induced and non-induced
+
+# create filter two variables so we have one induced and one control
+
+inducedPCA  = data %>%
+  filter(data$treatment == "CW")
+
+controlPCA = data %>%
+  filter(data$treatment == "C")
+
+#define vars of interest
+variables_of_interest <- c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8", "biomass", "Elevation")
+
+# subset data
+inducedPCA <- inducedPCA[, c("Population", variables_of_interest)]
+controlPCA <- controlPCA[, c("Population", variables_of_interest)]
+
+#replace NAs with 0s
+inducedPCA[is.na(inducedPCA)] <- 0
+controlPCA[is.na(controlPCA)] <- 0
+
+# make PCA
+induced_pca_result <- prcomp(inducedPCA[, variables_of_interest])
+control_pca_result <- prcomp(controlPCA[, variables_of_interest])
+
+summary(induced_pca_result)
+fviz_pca_var(induced_pca_result, col.var = "black")
+
+summary(control_pca_result)
+fviz_pca_var(control_pca_result, col.var = "black")
 
 ### > GSL compounds by population & treatment ----
 
