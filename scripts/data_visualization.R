@@ -12,9 +12,11 @@ library("FactoMineR")
 library(ggcorrplot)
 library('corrr')
 library(factoextra)
+library(vegan)
 
 ### > load data ----
 data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv")
+
 
 ### > Stacked bar plot ----
 
@@ -32,7 +34,7 @@ controlPCA = data %>%
   filter(data$treatment == "C")
 
 #define vars of interest
-variables_of_interest <- c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8", "biomass", "Elevation")
+variables_of_interest <- c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "X5MSO_10.2", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")
 
 # subset data
 inducedPCA <- inducedPCA[, c("Population", variables_of_interest)]
@@ -51,6 +53,28 @@ fviz_pca_var(induced_pca_result, col.var = "black")
 
 summary(control_pca_result)
 fviz_pca_var(control_pca_result, col.var = "black")
+
+#shape be treatment, color elevation - by next meeting
+
+### > NMDS ----
+
+# creat a dataframe with only control plants
+controls <- filter()
+
+
+# Get data is in a dissimilarity matrix format
+dist_matrix <- vegdist(data[, c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "X5MSO_10.2", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")], na.rm = TRUE)
+
+# run NMDS with grouping
+nmds_result <- metaMDS(dist_matrix, k = 2, trymax = 100, trace = FALSE, subset = data$Population)
+
+# plot results
+data$Population <- factor(data$Population)
+levels(data$Population)
+plot(nmds_result, type = "n")  # creates an empty plot
+points(nmds_result, col = data$Population)  # adds points with colors based on the grouping variable
+legend("topright", legend = levels(data$Population), col = data$Population, pch = 1, title = "Population", cex = 0.34)
+
 
 ### > GSL compounds by population & treatment ----
 
