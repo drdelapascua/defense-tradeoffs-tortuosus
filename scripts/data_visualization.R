@@ -22,7 +22,31 @@ data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv")
 
 ggplot(data, aes(x = reorder(Population, Elevation), y = , fill = treatment))
 
+# calculate population level means
 
+#split between control & induced
+
+
+# Variables for which you want to calculate means
+variables <- c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1","X3MT_13.6", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")
+
+# Initialize an empty dataframe to store the means
+means_df <- data.frame(Population = unique(data$Population))
+
+# Loop through each variable
+for (variable in variables) {
+  # Calculate means based on grouping variable
+  means <- aggregate(data[[variable]], by = list(data$Population), FUN = function(x) mean(x, na.rm = TRUE))
+  # Rename columns
+  colnames(means) <- c("Population", "mean")
+  # Merge means into the means_df dataframe
+  means_df <- merge(means_df, means, by = "Population", all.x = TRUE)
+  # Rename the mean column to include the variable name
+  colnames(means_df)[ncol(means_df)] <- paste0(variable, "_mean")
+}
+
+# Display the resulting dataframe
+print(means_df)
 ### > PCA for induced and non-induced
 
 # create filter two variables so we have one induced and one control

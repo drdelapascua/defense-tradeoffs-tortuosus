@@ -42,6 +42,10 @@ data = data %>%
 d_induced = data %>%
   filter(data$leaf_type == "induced")
 
+# create new variable with all compounds added together
+data$X3MSO_5.2 + data$OH.Alkenyl_6 + data$X4MSO_7.1 + data$Allyl_7.4 + data$X5MSO_10.2 + data$Butenyl_12.1 + data$X3MT_13.6 + data$MSOO_13.8 + data$OH.I3M_15.1 + data$X4MT._15.5 + data$Flavonol_16.1 + data$I3M_16.7 + data$Flavonol_17.5 + data$Flavonol_18.5 + data$Indole_18.8
+head(data)
+
 ### > save big data table ----
 
 write.csv(data, "~/GitHub/defense-tradeoffs-tortuosus/data/dl.csv")
