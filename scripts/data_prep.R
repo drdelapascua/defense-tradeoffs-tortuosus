@@ -38,13 +38,20 @@ to_keep <- c("D1", "D2", "D3", "D4", "D5", "D6")
 data = data %>%
   filter(data$`Rack #` %in% to_keep)
 
+# create new variable with all compounds added together
+head(data)
+
+columns_to_sum <- c("3MSO_5.2", "OH-Alkenyl_6", "4MSO_7.1", "Allyl_7.4", "5MSO_10.2", "Butenyl_12.1", "3MT_13.6", "MSOO_13.8", "OH I3M_15.1", "4MT _15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")
+sums <- rowSums(data[, columns_to_sum], na.rm = TRUE)
+
+data$totalGSL <- sums
+
+head(data)
+
 # filter dataset so only induced leaf is included
 d_induced = data %>%
   filter(data$leaf_type == "induced")
 
-# create new variable with all compounds added together
-data$X3MSO_5.2 + data$OH.Alkenyl_6 + data$X4MSO_7.1 + data$Allyl_7.4 + data$X5MSO_10.2 + data$Butenyl_12.1 + data$X3MT_13.6 + data$MSOO_13.8 + data$OH.I3M_15.1 + data$X4MT._15.5 + data$Flavonol_16.1 + data$I3M_16.7 + data$Flavonol_17.5 + data$Flavonol_18.5 + data$Indole_18.8
-head(data)
 
 ### > save big data table ----
 

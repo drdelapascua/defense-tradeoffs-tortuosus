@@ -21,17 +21,6 @@ library(tidyr)
 #pull data
 data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv")
 
-
-#Question: do growth and defense traits trade off in S. tortuosus?
-q1 <- lmer(biomass ~ X3MSO_5.2 + OH.Alkenyl_6 + X4MSO_7.1 + X5MSO_10.2 + MSOO_13.8 + OH.I3M_15.1 + X4MT._15.5 + Flavonol_16.1 + I3M_16.7 + Flavonol_17.5 + Flavonol_18.5 + Indole_18.8 + (1 | Elevation),data = data,  na.action = na.exclude)
-
-# issue with this approach: missing data
-
-# by compounds
-data$Population <- as.character(data$Population)
-X3MSOm1 <- lme(X3MSO_5.2 ~ biomass + treatment , random = ~1|Population, data = data, na.action = na.exclude)
-summary(X3MSOm1)
-
 #question 1 - i want to know whether populations that have high underlying defenses invest more or less in induced defenses
 
 #Response variable: each glucosinolate compounds (indoles most inducible, I3m & Indole)

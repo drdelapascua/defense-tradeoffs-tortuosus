@@ -24,7 +24,7 @@ ggplot(data, aes(x = reorder(Population, Elevation), y = , fill = treatment))
 
 # calculate population level means
 
-#split between control & induced
+#split between control & induced, repeat process for both, 2 df then leftjoin merge
 
 
 # Variables for which you want to calculate means
