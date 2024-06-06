@@ -13,6 +13,7 @@ library(ggcorrplot)
 library('corrr')
 library(factoextra)
 library(vegan)
+library(missForest)
 
 ### > load data ----
 data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv")
@@ -77,6 +78,10 @@ print(means_control)
 
 data_means <- left_join(means_induced, means_control, by = "Population")
 
+# build barplot
+
+
+
 ### > PCA for induced and non-induced
 
 # create filter two variables so we have one induced and one control
@@ -113,14 +118,22 @@ fviz_pca_var(control_pca_result, col.var = "black")
 ### > NMDS ----
 
 # creat a dataframe with only control plants
-controls <- filter()
+controls = data %>% 
+  filter(data$treatment == "C")
 
+#impute missing data
+imputed_data <- missForest(controls[, c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1","X3MT_13.6", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")])
 
 # Get data is in a dissimilarity matrix format
-dist_matrix <- vegdist(data[, c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "X5MSO_10.2", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")], na.rm = TRUE)
+dist_matrix <- vegdist(imputed_data[, c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1","X3MT_13.6", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")], na.rm = TRUE)
+dist_matrix <- vegdist(imputed_data$ximp)
 
 # run NMDS with grouping
-nmds_result <- metaMDS(dist_matrix, k = 2, trymax = 100, trace = FALSE, subset = data$Population)
+nmds_result <- metaMDS(dist_matrix, k = 2, trymax = 100, trace = FALSE,  distance = "bray", subset = controls$Population, na.rm = TRUE)
+
+env_data <- controls$Elevation
+envfit_result <- envfit(nmds_result, env_data, na.rm = TRUE)
+print(env_data)
 
 # plot results
 data$Population <- factor(data$Population)
