@@ -8,6 +8,7 @@ oo <- options(repos = "https://cran.r-project.org/")
 install.packages("Matrix")
 install.packages("lme4")
 install.packages("emmeans")
+install.packages('effects')
 
 #libraries
 library(lme4)
@@ -20,6 +21,7 @@ library(lattice)
 install.packages("mgcv")
 library(mgcv)
 library(ggplot2)
+library(effects)
 
 #pull data
 paired_means <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/paired_means.csv")
@@ -73,7 +75,11 @@ summary(x4mso_q1)
 
 # Allyl
 allyl_q1 <- lm(CW_Allyl_7.4 ~ Control_Allyl_7.4*Elevation.x, data = paired_means, na.action = na.exclude)
-summary(allyl_q1)
+summary(allyl_q1) # significant
+
+plot(allEffects(allyl_q1))
+
+#use EMMEANS to extract slopes at each elevation - something different happening across elevation
 
 # 5MSO
 x5mso_q1 <- lm(CW_5MSO_10.2 ~ Control_5MSO_10.2*Elevation.x, data = paired_means, na.action = na.exclude)
@@ -184,8 +190,34 @@ ggplot(data = paired_means, aes(x = Control_Butenyl_12.1, y = CW_Butenyl_12.1)) 
   geom_point() + 
   geom_smooth(method = "lm")
 
+ggplot(data = paired_means, aes(x = Elevation.x, y = CW_Butenyl_12.1)) + 
+  geom_point() + 
+  geom_smooth(method = "lm")
+
+ggplot(data = paired_means, aes(x = Elevation.x, y = Control_Butenyl_12.1)) + 
+  geom_point() + 
+  geom_smooth(method = "lm")
+
+ggplot(data = paired_means, aes(x = Control_Butenyl_12.1, y = CW_Butenyl_12.1, color = Elevation.x, label = Elevation.x)) + 
+  geom_point(size = 3) + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "purple")
+
+ggplot(data = dl, aes(x = biomass, y = Flavonol_16.1, color = Elevation, label = Elevation)) + 
+  geom_point(size = 3) + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + # Add a single trend line
+  theme_minimal() + 
+  labs(x = "End Biomass (g)", y = "Flavonoid 16", color = "Elevation") + 
+  scale_color_gradient(low = "orange", high = "purple")
+
+
 # MSOO
 ggplot(data = paired_means, aes(x = Control_MSOO_13.8, y = CW_MSOO_13.8)) + 
+  geom_point() + 
+  geom_smooth(method = "lm")
+
+ggplot(data = paired_means, aes(x = Elevation.x, y = CW_MSOO_13.8)) + 
   geom_point() + 
   geom_smooth(method = "lm")
 
