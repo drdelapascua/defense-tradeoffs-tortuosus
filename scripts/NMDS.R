@@ -5,6 +5,7 @@
 ### libraries
 library(vegan)
 library(dplyr)
+library(ggplot2)
 
 ### load data
 pop_means <-  read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/pop_means.csv")
@@ -24,6 +25,7 @@ data_scaled_labels <- control_pops[2] # vector with id info for above
 distances <- dist(data_scaled, method = "euclidean")
 
 # Perform NMDS
+set.seed(123)
 nmds_result <- metaMDS(distances, k = 2)  # Adjust 'k' as needed (usually 2 or 3 dimensions)
 
 # Plot NMDS results
