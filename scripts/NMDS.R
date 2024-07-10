@@ -7,6 +7,10 @@ library(vegan)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(ade4)
+library(funspace)
+
+
 
 ### load data
 dl <-  read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv")
@@ -148,6 +152,12 @@ nmds_dist_plot_pop = ggplot(data = nmds_dist_scores, aes(x = NMDS1, y= NMDS2)) +
   labs(color = "population", shape= "treatment") 
 
 nmds_dist_plot_pop
+
+# fun space
+nmds_coords <- nmds_result7$points
+nmds_data <- data.frame(X = nmds_coords[,1], Y = nmds_coords[,2], Group = all_groups$treatment)
+# Create NMDS plot with groups
+funplot(nmds_data[,1:2], group = nmds_data$Group, cex = 1.5) # getting an error here - why?
 
 # Permanova
 
