@@ -1,6 +1,6 @@
 ### Ch2 Testing Intraspecifc Defense Trade-offs 
 ### Danielle De La Pascua
-### 1-28-24
+### 7-12-24
 
 ### Data Preparation ----
 
@@ -15,7 +15,7 @@ library(dplyr)
 GSL <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/gsl_data.csv") %>%
   select(-(Run.Index:Plate.Position)) %>% # removes first few columns from HPLC output
   select(-starts_with("Junk")) %>% #remove any columns that start with Junk
-  filter(leaf_type == "induced") # only shows focal leaf in df - Danielle still needs to change this to focal & clamped in df
+  filter(leaf_type == "induced") # only shows focal leaf in df - Danielle still needs to change this to focal & clamped in df. This also removes NAs because NAs were not assigned "clamped" or "induced" because the label was left blank by accident
 
 #Make GSL Location col an integer for merging purposes
 GSL$Location <- as.integer(GSL$Location)
