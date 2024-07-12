@@ -10,12 +10,26 @@ library(ggplot2)
 library(ade4)
 library(funspace)
 
-
-
 ### load data
-dl <-  read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv")
-dl <- dl[-17] #getting rid of junk
-dl <- dl[-25] #getting rid of junk
+dl <-  read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv") %>%
+  select(-starts_with("Junk")) %>% #remove any columns that start with Junk 
+
+dl2 <- dl %>%
+  select(c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4")) #whatever order you put elect in is the order of the df, pop mf trt first
+
+dl2 = dl[,c(11:28)]
+
+#make NAs = 0 (NA means compound wasn't present in the sample)
+dl3 = dl2 %>%
+  mutate(across(c(1:15), ~replace_na(.x, 0))) 
+  
+dim(dl2)
+names(dl)
+
+# Danielle clean up above and below :)
+
+#dl <- dl[-17] #getting rid of junk
+#dl <- dl[-25] #getting rid of junk
 
 # filter for only controls
 #control_pops <- filter(pop_means, treatment == "C")
@@ -24,25 +38,25 @@ dl <- dl[-25] #getting rid of junk
 ### center and standardize data
 # standardizing the data (all will have variance = 1)
 # centering gives all a mean of 0
-dl_scaled <- as.data.frame(scale(dl[11:25]))
-dl_labels <- dl[26:28]
+dl_scaled <- as.data.frame(scale(dl3[1:15]))
+dl_labels <- dl3[16:18]
 dl_scaled[16:18] <- dl_labels # merge two dataframes
 
 ### exported df above and added reps for below - add to code 
 
-dl_scaled <-  read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/manual_reps.csv")
+dl_scaled_2 <-  read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/manual_reps.csv")
 
 
-dl_scaled <- dl_scaled %>%
+dl_scaled_2 <- dl_scaled_2 %>%
   mutate(ID = paste(Population, treatment, mf, rep, sep = "_"))
+
+row.names(dl_scaled) = dl_scaled_2$ID
 
 # create data frame that is just columns with scaled compounds and labels as colnames
 data_scaled = dl_scaled %>%
   # make rownames combo of pop, tmt, mf, and rep
   column_to_rownames(var = "ID")  %>%
   select(-Population, -treatment, -mf, -rep) %>%
-  #make NAs = 0 (NA means compound wasn't present in the sample)
-  mutate(across(everything(), ~replace_na(.x, 0))) 
   
 # Perform NMDS
 set.seed(123)
@@ -151,7 +165,74 @@ nmds_dist_plot_pop = ggplot(data = nmds_dist_scores, aes(x = NMDS1, y= NMDS2)) +
   geom_point(aes(colour = population, shape = treatment), size= 5, alpha = 0.75)   + theme_bw() +
   labs(color = "population", shape= "treatment") 
 
+#zeros are creating the straight lines - maybe 0-0 or something between groups 
+
+#sleuthing out zeroes 
+
+# Count number of values greater than zero 
+count_5MSO_zero <- sum(data_scaled$X3MSO_5.2 > 0)
+count_5MSO_zero
+
+count_OH_Alkenyl_zero <- sum(data_scaled$OH.Alkenyl_6 > 0)
+count_OH_Alkenyl_zero
+
+count_4MSO_zero <- sum(data_scaled$X4MSO_7.1 > 0)
+count_4MSO_zero
+
+count_Allyl_zero <- sum(data_scaled$Allyl_7.4 > 0)
+count_Allyl_zero
+
+
+count_5MSO_zero <- sum(data_scaled$X5MSO_10.2 > 0)
+count_5MSO_zero
+
+count_Butenyl_zero <- sum(data_scaled$Butenyl_12.1 > 0)
+count_Butenyl_zero
+
+count_3MT_zero <- sum(data_scaled$X3MT_13.6 > 0)
+count_3MT_zero
+
+count_MSOO_zero <- sum(data_scaled$MSOO_13.8 > 0)
+count_MSOO_zero
+
+count_OH_I3M_zero <- sum(data_scaled$OH.I3M_15.1 > 0)
+count_OH_I3M_zero
+
+count_4MT_zero <- sum(data_scaled$X4MT._15.5 > 0)
+count_4MT_zero
+
+count_Flavonol16_zero <- sum(data_scaled$Flavonol_16.1 > 0)
+count_Flavonol16_zero 
+
+count_I3M_zero <- sum(data_scaled$I3M_16.7 > 0)
+count_I3M_zero
+
+count_Flavonol17_zero <- sum(data_scaled$Flavonol_17.5 > 0)
+count_Flavonol17_zero
+
+
+count_Flavonol18_zero <- sum(data_scaled$Flavonol_18.5 > 0)
+count_Flavonol18_zero
+
 nmds_dist_plot_pop
+
+correlations_1 
+correlations_2
+
+# axes 2 & 3
+nmds_dist_plot_pop_2_3 = ggplot(data = nmds_dist_scores, aes(x = NMDS2, y= NMDS3)) +
+  geom_point(aes(colour = population, shape = treatment), size= 5, alpha = 0.75)   + theme_bw() +
+  labs(color = "population", shape= "treatment") 
+nmds_dist_plot_pop_2_3
+#so strange!!!
+
+
+#axes 3 & 4
+nmds_dist_plot_pop_3_4 = ggplot(data = nmds_dist_scores, aes(x = NMDS3, y= NMDS4)) +
+  geom_point(aes(colour = population, shape = treatment), size= 5, alpha = 0.75)   + theme_bw() +
+  labs(color = "population", shape= "treatment") 
+
+nmds_dist_plot_pop_3_4
 
 # fun space
 nmds_coords <- nmds_result7$points
@@ -166,7 +247,7 @@ permanova_bray = adonis2(all_bray_rel ~ Population*treatment, perm= 999, data = 
 summary(permanova_bray)
 permanova_bray
 
-# old code
+############################ OLD CODE ##########################################
 
 
 # filter for only controls
