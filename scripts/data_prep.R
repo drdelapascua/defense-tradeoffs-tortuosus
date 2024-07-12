@@ -12,39 +12,55 @@ library(dplyr)
 ### > load data ----
 
 # load GSL data
-GSL <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/gsl_data.csv") %>%
+#GSL <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/gsl_data.csv") %>%
+GSL <- read.csv("./data/gsl_data.csv") %>% #JRG: this makes your path in relation to the github project, which should allow it to transfer across computers better
   select(-(Run.Index:Plate.Position)) %>% # removes first few columns from HPLC output
   select(-starts_with("Junk")) %>% #remove any columns that start with Junk
   filter(leaf_type == "induced") # only shows focal leaf in df - Danielle still needs to change this to focal & clamped in df. This also removes NAs because NAs were not assigned "clamped" or "induced" because the label was left blank by accident
 
+summary(GSL)
+head(GSL)
 #Make GSL Location col an integer for merging purposes
 GSL$Location <- as.integer(GSL$Location)
+summary(GSL)
 
 # load biomass & experiment location & ID data
-biomass <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/biomass.csv")
-colnames(biomass) <- c("Rack", "Location", "Population", "mf", "rep", "treatment", "biomass")
+#biomass <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/biomass.csv")
+biomass <- read.csv("./data/biomass.csv") %>% #with relational path now
+           select(Population = Pop, treatment = trt, biomass = mass..g., everything()) #this renames your columns and tells it to include the rest
+summary(biomass)
+#colnames(biomass) <- c("Rack", "Location", "Population", "mf", "rep", "treatment", "biomass")
 
 # load df with site elevation, locality, and seed year data 
-pop_data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/elevation.csv")
+#pop_data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/elevation.csv")
+pop_data <- read.csv("./data/elevation.csv") #now with relational pathway
+summary(pop_data)
 
 # join mass data & location data with GSL data
 
 #join gsl and mass/rack location data by rack & location
 data <- left_join(biomass, GSL, by = c("Rack", "Location"))
-#join df with elevation & pop loc data
-data <- left_join(data, pop_data, by = "Population")
+summary(data)
+dim(biomass)
+dim(GSL)
+dim(data)
 
+#join dfdata#join df with elevation & pop loc data
+data <- left_join(data, pop_data, by = "Population")
+dim(data)
 ### > save big data table ----
 
-write.csv(data, "~/GitHub/defense-tradeoffs-tortuosus/data/dl.csv")
-write.csv(d_induced, "~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv")
+#write.csv(data, "~/GitHub/defense-tradeoffs-tortuosus/data/dl.csv")
+write.csv(data, "./data/dl.csv")
+#write.csv(d_induced, "~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv") I don't think you have created d_induced yet.  
 
 ## OLD CODE - Aggregating means (do in tidy way if we need means in the future)
 
 ### manipulate data so we have a df with mf means for CW and C treated plants
-dl <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv")
-head(dl)
-dl <- dl[11:35]
+#JRG: why load this data here?  Is this left over from a previous version?  Why not keep working with the data you have been using above?
+#dl <- read.csv("./data/dl-induced.csv")
+#head(dl)
+#dl <- dl[11:35]
 
 # aggregate across mfs and by population
 # across mfs
