@@ -16,10 +16,12 @@ library(dplyr)
 GSL <- read.csv("./data/gsl_data.csv") %>% #JRG: this makes your path in relation to the github project, which should allow it to transfer across computers better
   select(-(Run.Index:Plate.Position)) %>% # removes first few columns from HPLC output
   select(-starts_with("Junk")) %>% #remove any columns that start with Junk
-  filter(leaf_type == "induced") # only shows focal leaf in df - Danielle still needs to change this to focal & clamped in df. This also removes NAs because NAs were not assigned "clamped" or "induced" because the label was left blank by accident
+  filter(leaf_type == "induced") %>% # only shows focal leaf in df - Danielle still needs to change this to focal & clamped in df. This also removes NAs because NAs were not assigned "clamped" or "induced" because the label was left blank by accident
+  mutate(across(c(4:18), ~replace_na(.x, 0))) # replaces NAs with 0s for GSL compound cols - compound was not present in the sample
 
 summary(GSL)
 head(GSL)
+
 #Make GSL Location col an integer for merging purposes
 GSL$Location <- as.integer(GSL$Location)
 summary(GSL)
@@ -27,9 +29,9 @@ summary(GSL)
 # load biomass & experiment location & ID data
 #biomass <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/biomass.csv")
 biomass <- read.csv("./data/biomass.csv") %>% #with relational path now
-           select(Population = Pop, treatment = trt, biomass = mass..g., everything()) #this renames your columns and tells it to include the rest
+           select(Population = "Pop", treatment = "trt", biomass = "mass..g.", everything()) #this renames your columns and tells it to include the rest
+
 summary(biomass)
-#colnames(biomass) <- c("Rack", "Location", "Population", "mf", "rep", "treatment", "biomass")
 
 # load df with site elevation, locality, and seed year data 
 #pop_data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/elevation.csv")
@@ -45,16 +47,39 @@ dim(biomass)
 dim(GSL)
 dim(data)
 
-#join dfdata#join df with elevation & pop loc data
+#why are these not the same
+# Create combined keys
+GSL$key <- paste(GSL$Rack, GSL$Location)
+biomass$key <- paste(biomass$Rack, biomass$Location)
+
+# Find non-matching combinations
+non_matching <- GSL$key[!GSL$key %in% biomass$key] #samples in GSL data not in biomass data
+non_matching2 <- biomass$key[!biomass$key %in% GSL$key] #samples in biomass data not in GSL data
+
+non_matching #samples in GSL not biomass: D4-25 
+
+non_matching2 #samples in biomass not GSL: D4-19, D4-26
+
+
+#drop non-matching combinations
+data$key <- paste(data$Rack, data$Location)
+data <- data %>%
+  filter(key != 'D4 25') %>%
+  filter(key != 'D4 26') %>%
+  filter(key != 'D4 19')
+
+
+#join df with elevation & pop loc data
 data <- left_join(data, pop_data, by = "Population")
 dim(data)
+
 ### > save big data table ----
 
 #write.csv(data, "~/GitHub/defense-tradeoffs-tortuosus/data/dl.csv")
 write.csv(data, "./data/dl.csv")
-#write.csv(d_induced, "~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv") I don't think you have created d_induced yet.  
 
-## OLD CODE - Aggregating means (do in tidy way if we need means in the future)
+
+########## OLD CODE - Aggregating means (do in tidy way if we need means in the future)
 
 ### manipulate data so we have a df with mf means for CW and C treated plants
 #JRG: why load this data here?  Is this left over from a previous version?  Why not keep working with the data you have been using above?
