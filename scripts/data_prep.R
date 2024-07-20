@@ -68,10 +68,23 @@ data <- data %>%
   filter(key != 'D4 26') %>%
   filter(key != 'D4 19')
 
+# Sam's note: YO10 in biomass and YOSE10 in pop_data so doesn't add pop_data in merge
+
+sort(pop_data$Population)
+sort(unique(data$Population))
+
+# change name in pop_data so merges correctly
+pop_data[20,1] = "YO10"
+
 
 #join df with elevation & pop loc data
-data <- left_join(data, pop_data, by = "Population")
+data <- left_join(data, pop_data, by = "Population") 
 dim(data)
+
+table(is.na(data)) # means that there is still an NA in the dataframe
+
+# the NA is for biomass of population TFC, treatment C, rack D1, location 29, mf 1, rep 1
+
 
 ### > save big data table ----
 
