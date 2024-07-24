@@ -91,6 +91,9 @@ table(is.na(data)) # means that there is still an NA in the dataframe
 data <- data %>%
   filter(key != 'D1 29') 
 
+table(is.na(data)) # FALSE, no NAs
+
+
 ### > save big data table ----
 
 #write.csv(data, "~/GitHub/defense-tradeoffs-tortuosus/data/dl.csv")

@@ -9,6 +9,9 @@ library(tidyr)
 library(ggplot2)
 library(ade4)
 library(funspace)
+library(installr)
+library(tibble)
+library(mclust)
 
 ### load data
 dl <-  read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl.csv") %>%
@@ -76,13 +79,11 @@ correlations_7 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 7]))
 correlations_1 # low values overall, 
 correlations_2 # 
 correlations_3
-correlations_4 # negative relationship between 5MSO and Butenyl?
-correlations_5 #
+correlations_4 
+correlations_5 
 correlations_6
 correlations_7
 
-# for both loadings, only Allyl, Butenyl, Flavonol 16, Flavonol 18, and Indole are showing up
-# One observation, these are among the most abundant - maybe the others dont have enough data?
 
 #plot correlations
 barplot(correlations_1, names.arg = colnames(data_scaled2),
@@ -215,6 +216,32 @@ all_bray_rel = vegdist(data_scaled2, method = 'bray')
 permanova_bray = adonis2(all_bray_rel ~ Population*treatment, perm= 999, data = all_groups)
 summary(permanova_bray)
 permanova_bray
+
+# cluster analysis - heirarchical clustering
+nmds_scores <- nmds_result7$points
+hc <- hclust(dist(nmds_scores))  # Compute distances between NMDS scores
+plot(hc)  # Plot dendrogram
+clusters <- cutree(hc, k = 4)  # Cut dendrogram into 3 clusters (adjust k as needed)
+plot(clusters)
+clusters
+
+# plotting clusters on NMDS plot
+plot(nmds_result7, display = "sites", type = "n")  # Plot NMDS configuration
+points(nmds_result7, display = "sites", col = clusters)  # Add points colored by cluster membership
+
+#using paper methods
+gmm_model <- Mclust(nmds_scores)
+
+# Extract cluster assignments
+clusters <- gmm_model$classification
+clusters
+# Example scatter plot of NMDS scores with clusters colored
+plot(nmds_scores, col = clusters, pch = 16, main = "Cluster Analysis on NMDS Scores")
+legend("topright", legend = unique(clusters), col = unique(clusters), pch = 16, title = "Cluster")
+
+# Example scatter plot of NMDS scores with GMM clusters colored - 9 clusters
+plot(nmds_scores, col = clusters, pch = 16, main = "Gaussian Mixture Model Clustering on NMDS Scores")
+legend("topright", legend = unique(clusters), col = unique(clusters), pch = 16, title = "Cluster")
 
 ############################ OLD CODE ##########################################
 
