@@ -84,7 +84,12 @@ dim(data)
 table(is.na(data)) # means that there is still an NA in the dataframe
 
 # the NA is for biomass of population TFC, treatment C, rack D1, location 29, mf 1, rep 1
+# Danielle checked original datasheet, cell was left blank 7/23/24 - kept tissue, re-weigh?
 
+# for now filter data point out
+
+data <- data %>%
+  filter(key != 'D1 29') 
 
 ### > save big data table ----
 
