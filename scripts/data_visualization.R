@@ -16,70 +16,36 @@ library(vegan)
 library(missForest)
 
 ### > load data ----
-data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv")
-
+pop_means_long <- read.csv("./data/pop_means_long.csv")
 
 ### > Stacked bar plot ----
 
-ggplot(data, aes(x = reorder(Population, Elevation), y = , fill = treatment))
+# build big barplot
+ggplot(pop_means_long, aes(x = treatment, y = value, fill = compound)) + 
+  geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
+  facet_wrap(~ Population) +  # Create separate plots for each treatment
+  labs(x = "Population", y = "Mean Value", fill = "Compound") +
+  theme_minimal()
 
-# calculate population level means
+#build barplot with just butenyl & allyl
+ab_means <- pop_means_long %>%
+  filter(compound %in% c("Allyl", "Butenyl"))
 
-#split between control & induced, repeat process for both, 2 df then leftjoin merge
+ggplot(ab_means, aes(x = treatment, y = value, fill = compound)) + 
+  geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
+  facet_wrap(~ Population) +  # Create separate plots for each treatment
+  labs(x = "Population", y = "Mean Value", fill = "Compound") +
+  theme_minimal()
 
-# filter dataset so only induced leaf is included
-d_induced = data %>%
-  filter(data$leaf_type == "induced")
+# build barplot with all other cmpds
+small_cmpd_means <- pop_means_long %>%
+  filter(!compound %in% c("Allyl", "Butenyl"))
 
-data_induced = d_induced %>%
-  filter(data$treatment == "CW")
-
-data_control = d_induced %>%
-  filter(data$treatment == "C")
-
-# Variables for which you want to calculate means
-variables <- c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1","X3MT_13.6", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")
-
-# Initialize an empty dataframe to store the means
-means_control <- data.frame(Population = unique(data$Population))
-means_induced <- data.frame(Population = unique(data$Population)) 
-
-# Loop through each variable - induced
-for (variable in variables) {
-  # Calculate means based on grouping variable
-  means <- aggregate(data_induced[[variable]], by = list(data_induced$Population), FUN = function(x) mean(x, na.rm = TRUE))
-  # Rename columns
-  colnames(means) <- c("Population", "mean")
-  # Merge means into the means_df dataframe
-  means_induced <- merge(means_induced, means, by = "Population", all.x = TRUE)
-  # Rename the mean column to include the variable name
-  colnames(means_induced)[ncol(means_induced)] <- paste0(variable, "_inducedmean")
-}
-
-# Display the resulting dataframe
-print(means_induced)
-
-# Loop through each variable - induced
-for (variable in variables) {
-  # Calculate means based on grouping variable
-  means <- aggregate(data_control[[variable]], by = list(data_control$Population), FUN = function(x) mean(x, na.rm = TRUE))
-  # Rename columns
-  colnames(means) <- c("Population", "mean")
-  # Merge means into the means_df dataframe
-  means_control <- merge(means_control, means, by = "Population", all.x = TRUE)
-  # Rename the mean column to include the variable name
-  colnames(means_control)[ncol(means_control)] <- paste0(variable, "_controlmean")
-}
-
-# Display the resulting dataframe
-print(means_control)
-
-# join two dataframes
-
-data_means <- left_join(means_induced, means_control, by = "Population")
-
-# build barplot
-
+ggplot(small_cmpd_means, aes(x = treatment, y = value, fill = compound)) + 
+  geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
+  facet_wrap(~ Population) +  # Create separate plots for each treatment
+  labs(x = "Population", y = "Mean Value", fill = "Compound") +
+  theme_minimal()
 
 
 ### > PCA for induced and non-induced
