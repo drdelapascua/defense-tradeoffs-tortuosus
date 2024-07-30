@@ -13,14 +13,16 @@ library(dplyr)
 
 # load GSL data
 #GSL <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/gsl_data.csv") %>%
-GSL <- read.csv("./data/gsl_data.csv") %>% #JRG: this makes your path in relation to the github project, which should allow it to transfer across computers better
+GSL <- read.csv("./data/gsl_data.csv") %>% #JRG: this makes your path in relation to the github project, which should allow it to transfer across computers better - go up one folder indicated by ".", two levels "..", so on 
   select(-(Run.Index:Plate.Position)) %>% # removes first few columns from HPLC output
   select(-starts_with("Junk")) %>% #remove any columns that start with Junk
   filter(leaf_type == "induced") %>% # only shows focal leaf in df - Danielle still needs to change this to focal & clamped in df. This also removes NAs because NAs were not assigned "clamped" or "induced" because the label was left blank by accident
+  mutate(leaf_type = recode(leaf_type, induced = "focal")) %>% #specifies that the "induced" to "focal"
   mutate(across(c(4:18), ~replace_na(.x, 0))) # replaces NAs with 0s for GSL compound cols - compound was not present in the sample
 
 summary(GSL)
 head(GSL)
+unique(GSL$leaf_type)
 
 #Make GSL Location col an integer for merging purposes
 GSL$Location <- as.integer(GSL$Location)
@@ -35,7 +37,12 @@ summary(biomass)
 
 # load df with site elevation, locality, and seed year data 
 #pop_data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/elevation.csv")
-pop_data <- read.csv("./data/elevation.csv") #now with relational pathway
+pop_data <- read.csv("./data/elevation.csv") %>% #now with relational pathway
+  mutate(Population = recode(Population, YOSE10 = "YO10"))
+  
+
+unique(pop_data$Population)
+
 summary(pop_data)
 
 # join mass data & location data with GSL data
@@ -56,9 +63,9 @@ biomass$key <- paste(biomass$Rack, biomass$Location)
 non_matching <- GSL$key[!GSL$key %in% biomass$key] #samples in GSL data not in biomass data
 non_matching2 <- biomass$key[!biomass$key %in% GSL$key] #samples in biomass data not in GSL data
 
-non_matching #samples in GSL not biomass: D4-25 
+non_matching #samples in GSL not biomass: D4-25 - REWEIGH, i still have these samples
 
-non_matching2 #samples in biomass not GSL: D4-19, D4-26
+non_matching2 #samples in biomass not GSL: D4-19, D4-26 - note these were samples that did not have labels on microcentrifuge tube when running HPLC
 
 
 #drop non-matching combinations
@@ -68,14 +75,7 @@ data <- data %>%
   filter(key != 'D4 26') %>%
   filter(key != 'D4 19')
 
-# Sam's note: YO10 in biomass and YOSE10 in pop_data so doesn't add pop_data in merge
-
-sort(pop_data$Population)
-sort(unique(data$Population))
-
-# change name in pop_data so merges correctly
-pop_data[20,1] = "YO10"
-
+summary(data) 
 
 #join df with elevation & pop loc data
 data <- left_join(data, pop_data, by = "Population") 
@@ -99,6 +99,30 @@ table(is.na(data)) # FALSE, no NAs
 #write.csv(data, "~/GitHub/defense-tradeoffs-tortuosus/data/dl.csv")
 write.csv(data, "./data/dl.csv")
 
+# aggregating means
+
+head(data)
+
+mf_means <-data %>% 
+  # Summarize by maternal family
+  group_by(Population, treatment, mf) %>% 
+  summarise(
+    X5MSO = mean(X5MSO_10.2),
+    OHAlkenyl = mean(OH.Alkenyl_6),
+    X4MSO = mean(X4MSO_7.1),
+    Allyl = mean(Allyl_7.4),
+    X5MSO = mean(X5MSO_10.2),
+    Butenyl = mean(Butenyl_12.1),
+    X3MT = mean(X3MT_13.6),
+    MSOO = mean(MSOO_13.8),
+    OHI3M = mean(OH.I3M_15.1),
+    X4MT = mean(X4MT._15.5),
+    Flavonol16 = mean(Flavonol_16.1),
+    I3M = mean(I3M_16.7),
+    Flavonol17 = mean(Flavonol_17.5),
+    Flavonol18 = mean(Flavonol_18.5),
+    Indole = mean(Indole_18.8)
+  )
 
 ########## OLD CODE - Aggregating means (do in tidy way if we need means in the future)
 

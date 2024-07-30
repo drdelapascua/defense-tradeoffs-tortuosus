@@ -76,7 +76,7 @@ correlations_7 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 7]))
 
 #when error - ask what is it doing/trying to do?
 
-correlations_1 # low values overall, 
+correlations_1 # low values overall, Indole and Flavonol 18 most strongly associated 
 correlations_2 # 
 correlations_3
 correlations_4 
