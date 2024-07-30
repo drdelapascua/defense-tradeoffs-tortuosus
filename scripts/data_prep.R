@@ -97,7 +97,7 @@ table(is.na(data)) # FALSE, no NAs
 ### > save big data table ----
 
 #write.csv(data, "~/GitHub/defense-tradeoffs-tortuosus/data/dl.csv")
-write.csv(data, "./data/dl.csv")
+write.csv(data, "./data/dw.csv")
 
 # aggregating means
 
@@ -123,6 +123,44 @@ mf_means <-data %>%
     Flavonol18 = mean(Flavonol_18.5),
     Indole = mean(Indole_18.8)
   )
+
+# make pop means
+pop_means <- mf_means %>% 
+  # Summarize by population
+  group_by(Population, treatment) %>% 
+  summarise(
+    GSL_X5MSO = mean(X5MSO),
+    GSL_OHAlkenyl = mean(OHAlkenyl),
+    GSL_X4MSO = mean(X4MSO),
+    GSL_Allyl = mean(Allyl),
+    GSL_X5MSO = mean(X5MSO),
+    GSL_Butenyl = mean(Butenyl),
+    GSL_X3MT = mean(X3MT),
+    GSL_MSOO = mean(MSOO),
+    GSL_OHI3M = mean(OHI3M),
+    GSL_X4MT = mean(X4MT),
+    GSL_Flavonol16 = mean(Flavonol16),
+    GSL_I3M = mean(I3M),
+    GSL_Flavonol17 = mean(Flavonol17),
+    GSL_Flavonol18 = mean(Flavonol18),
+    GSL_Indole = mean(Indole)
+  )
+  
+# save dfs
+write.csv(mf_means, "./data/mf_means.csv")
+write.csv(pop_means, "./data/pop_means.csv")
+
+# make long version of means df
+pop_means_long <- pop_means %>%
+  pivot_longer(
+    cols = starts_with("GSL_"),  # Select columns that start with "chemical_"
+    names_to = "compound",
+    values_to = "value") %>%
+  separate(compound, into = c("compound type", "compound"), sep = "_")
+
+# save long version of data
+write.csv(pop_means_long, "./data/pop_means_long.csv")
+
 
 ########## OLD CODE - Aggregating means (do in tidy way if we need means in the future)
 
