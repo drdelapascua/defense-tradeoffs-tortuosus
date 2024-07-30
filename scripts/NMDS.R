@@ -35,13 +35,15 @@ data_scaled2 = dl_scaled %>%
   select(-Population, -treatment, -mf, -rep)
   
 # Perform NMDS
+
+# bray - needs to be positive, could use gower
 set.seed(123)
-nmds_result2 <- metaMDS(data_scaled2, k = 2, distance = "bray")  # Adjust 'k' as needed (usually 2 or 3 dimensions)
-nmds_result3 <- metaMDS(data_scaled2, k = 3, distance = "bray")  # Adjust 'k' as needed (usually 2 or 3 dimensions)
-nmds_result4 <- metaMDS(data_scaled2, k = 4, distance = "bray")  # Adjust 'k' as needed (usually 2 or 3 dimensions)
-nmds_result5 <- metaMDS(data_scaled2, k = 5, distance = "bray")  # Adjust 'k' as needed (usually 2 or 3 dimensions)
-nmds_result6 <- metaMDS(data_scaled2, k = 6, distance = "bray")  # Adjust 'k' as needed (usually 2 or 3 dimensions)
-nmds_result7 <- metaMDS(data_scaled2, k = 7, distance = "bray")  # Adjust 'k' as needed (usually 2 or 3 dimensions)
+nmds_result2 <- metaMDS(data_scaled2, k = 2, distance = "gower")  # Adjust 'k' as needed (usually 2 or 3 dimensions)
+nmds_result3 <- metaMDS(data_scaled2, k = 3, distance = "gower")  # Adjust 'k' as needed (usually 2 or 3 dimensions)
+nmds_result4 <- metaMDS(data_scaled2, k = 4, distance = "gower")  # Adjust 'k' as needed (usually 2 or 3 dimensions)
+nmds_result5 <- metaMDS(data_scaled2, k = 5, distance = "gower")  # Adjust 'k' as needed (usually 2 or 3 dimensions)
+nmds_result6 <- metaMDS(data_scaled2, k = 6, distance = "gower")  # Adjust 'k' as needed (usually 2 or 3 dimensions)
+nmds_result7 <- metaMDS(data_scaled2, k = 7, distance = "gower")  # Adjust 'k' as needed (usually 2 or 3 dimensions)
 
 #look at results, stress level should be under 0.1
 nmds_result2 # 0.22
@@ -59,7 +61,8 @@ stressplot(nmds_result5)
 stressplot(nmds_result7)
 
 # Plot NMDS results
-plot(nmds_result7, type = "points", display = "sites")  # 'sites' for samples/observations
+plot(nmds_result5, type = "points", display = "sites")  # 'sites' for samples/observations
+
 
 # Assuming 'nmds_result' is your NMDS result object from 'metaMDS'
 scores <- scores(nmds_result7, display = "sites")  # Extract NMDS scores
@@ -212,10 +215,14 @@ count_Indole_zero <- sum(data_scaled2$Indole_18.8 > 0) # 93
 
 # Permanova
 
-all_bray_rel = vegdist(data_scaled2, method = 'bray')
+summary(data_scaled2)
+
+all_bray_rel = vegdist(data_scaled2, method = 'gower')
 permanova_bray = adonis2(all_bray_rel ~ Population*treatment, perm= 999, data = all_groups)
 summary(permanova_bray)
 permanova_bray
+
+# pops are different, treatments are different, but the way theyre responding across pops is the same
 
 # cluster analysis - heirarchical clustering
 nmds_scores <- nmds_result7$points
