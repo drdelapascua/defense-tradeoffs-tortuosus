@@ -24,8 +24,92 @@ library(ggplot2)
 library(effects)
 
 #pull data
-paired_means <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/paired_means.csv")
-dl <-  read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl-induced.csv")
+#paired_means <- read.csv("./data/paired_means.csv")
+dw <-  read.csv("./data/dw.csv")
+head(dw)
+
+#question 1 - i want to know whether populations that have high underlying defenses invest more or less in induced defenses
+# Q2 - growth-defense trade-offs & association with environment
+
+#first build model
+
+# random effects model
+# fixed effect: compound 
+dw$Population = as.factor(dw$Population)
+b1 <- lmer(Butenyl_12.1 ~ Elevation*treatment*biomass + (1|Population), data = dw)
+summary(b1)
+
+# individual crossed effects
+
+#running population as fixed effect crossed with treatment 
+
+### 3MSO
+x3mso_m1 <- lm(X3MSO_5.2 ~ Population*treatment, data = dw) 
+summary(x3mso_m1) # a few significant interactions by population
+
+# worth looking into iowa hill and a few other pops
+
+#with elevation*treatment
+x3mso_m2 <- lm(X3MSO_5.2 ~ Elevation*treatment, data = dw)
+summary(x3mso_m2) # overall slight negative effect of elevation on 3MSO
+
+### 4MSO
+# pop*trt
+x4mso_m1 <- lm(X4MSO_7.1 ~ Population*treatment, data = dw) 
+summary(x4mso_m1) # no significant interactions by population
+
+# worth looking into iowa hill and a few other pops
+
+#with elevation*treatment
+x4mso_m2 <- lm(X4MSO_7.1 ~ Elevation*treatment, data = dw)
+summary(x4mso_m2) # overall slight negative effect of elevation on 3MSO
+
+### Allyl
+# pop*trt
+allyl_m1 <- lm(Allyl_7.4 ~ Population*treatment, data = dw) 
+summary(allyl_m1) # no significant interactions by population, SQ2 has more allyls than other pops
+
+#with elevation*treatment
+butenyl_m2 <- lm(Butenyl_12.1 ~ Elevation*treatment, data = dw)
+summary(butenyl_m2) # overall positive effect of elevation on butenyls
+
+
+### Butenyl
+butenyl_m1 <- lm(Butenyl_12.1 ~ Population*treatment, data = dw) 
+summary(butenyl_m1) # lots of significant interactions by population
+
+#with elevation*treatment
+butenyl_m2 <- lm(Butenyl_12.1 ~ Elevation*treatment, data = dw)
+summary(butenyl_m2) # overall positive effect of elevation on butenyls
+
+### I3M
+
+#population*treatment
+I3M_m1 <- lm(I3M_16.7 ~ Population*treatment, data = dw)
+summary(I3M_m1) 
+
+#with elevation*treatment
+I3M_m2 <- lm(I3M_16.7 ~ Elevation*treatment, data = dw)
+summary(I3M_m2)
+
+### Indole
+
+#population*treatment
+Indole_m1 <- lm(Indole_18.8 ~ Population*treatment, data = dw)
+summary(Indole_m1)  #here there are some significant interactions among some populations & treatments
+
+# use EMMEANS to look at slope of global model
+
+# use EMMEANS to look at values for the following populations:
+
+# WL1
+# YOSE8
+
+#with elevation*treatment
+Indole_m2 <- lm(Indole_18.8~ Elevation*treatment, data = dw)
+summary(Indole_m2) # no significant interaction with elevation
+
+# OLD CODE
 
 #question 1 - i want to know whether populations that have high underlying defenses invest more or less in induced defenses
 

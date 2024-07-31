@@ -14,7 +14,7 @@ library(tibble)
 library(mclust)
 
 ### load data
-dl <-  read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dl.csv") %>%
+dl <-  read.csv("./data/dw.csv") %>%
   select("Population", "mf", "rep", "treatment", "X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "X3MT_13.6", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")
   #whatever order you put elect in is the order of the df, pop mf trt first
 
@@ -49,7 +49,7 @@ nmds_result7 <- metaMDS(data_scaled2, k = 7, distance = "gower")  # Adjust 'k' a
 nmds_result2 # 0.22
 nmds_result3 # 0.17
 nmds_result4 # 0.14 
-nmds_result5 # 0.11
+nmds_result5 # best sol
 nmds_result6 # 0.10
 nmds_result7 # 0.09 - stress dips below 0.1
 
@@ -65,21 +65,21 @@ plot(nmds_result5, type = "points", display = "sites")  # 'sites' for samples/ob
 
 
 # Assuming 'nmds_result' is your NMDS result object from 'metaMDS'
-scores <- scores(nmds_result7, display = "sites")  # Extract NMDS scores
+scores <- scores(nmds_result5, display = "sites")  # Extract NMDS scores
 scores # gives by each individual ID (rownames)
 
 # Calculate correlations between original variables and NMDS scores
-correlations_1 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 1]))
-correlations_2 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 2]))
-correlations_3 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 3]))
-correlations_4 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 4]))
-correlations_5 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 5]))
-correlations_6 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 6]))
-correlations_7 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 7]))
+correlations1 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 1]))
+correlations2 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 2]))
+correlations3 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 3]))
+correlations4 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 4]))
+correlations5 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 5]))
+#correlations_6 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 6]))
+#correlations_7 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 7]))
 
 #when error - ask what is it doing/trying to do?
 
-correlations_1 # low values overall, Indole and Flavonol 18 most strongly associated 
+correlations_1 # strongest is negative butenyl, -.8. Allyl is .5, 4MSO -.6, 3MSO is .65
 correlations_2 # 
 correlations_3
 correlations_4 
@@ -87,6 +87,15 @@ correlations_5
 correlations_6
 correlations_7
 
+df <- data.frame(
+  Axis_1 = correlations_1,
+  Axis_2 = correlations_2,
+  Axis_3 = correlations_3,
+  Axis_4 = correlations_4,
+  Axis_5 = correlations_5
+)
+
+df
 
 #plot correlations
 barplot(correlations_1, names.arg = colnames(data_scaled2),
@@ -124,7 +133,7 @@ barplot(correlations_7, names.arg = colnames(data_scaled2),
 all_groups = dl_scaled %>%
   select(Population, treatment, mf, rep)
 
-nmds_dist_scores = as.data.frame(scores(nmds_result7, "sites")) %>%
+nmds_dist_scores = as.data.frame(scores(nmds_result5, "sites")) %>%
   mutate(population = all_groups$Population, treatment = all_groups$treatment, mf = all_groups$mf, rep = all_groups$rep)
 
 # plot it 
@@ -150,34 +159,51 @@ nmds_dist_plot_pop_2_3 = ggplot(data = nmds_dist_scores, aes(x = NMDS2, y= NMDS3
   labs(color = "population", shape= "treatment") 
 nmds_dist_plot_pop_2_3
 
+# plot only trt
+nmds_dist_plot_trt23 = ggplot(data = nmds_dist_scores, aes(x = NMDS2, y= NMDS3)) +
+  geom_point(aes(colour = treatment), size= 5, alpha = 0.75)   + theme_bw() +
+  scale_color_manual(values = c("firebrick4" , "darkolivegreen4", "dodgerblue4")) +
+  scale_shape_manual(values = c(1,18))+
+  labs(color = "treatment", shape= "population") 
+
+nmds_dist_plot_trt23
+
 
 #axes 3 & 4
+
+#population & treatment
 nmds_dist_plot_pop_3_4 = ggplot(data = nmds_dist_scores, aes(x = NMDS3, y= NMDS4)) +
   geom_point(aes(colour = population, shape = treatment), size= 5, alpha = 0.75)   + theme_bw() +
   labs(color = "population", shape= "treatment") 
 
 nmds_dist_plot_pop_3_4
 
+#just treatment
+nmds_dist_plot_trt34 = ggplot(data = nmds_dist_scores, aes(x = NMDS3, y= NMDS4)) +
+  geom_point(aes(colour = treatment), size= 5, alpha = 0.75)   + theme_bw() +
+  scale_color_manual(values = c("firebrick4" , "darkolivegreen4", "dodgerblue4")) +
+  scale_shape_manual(values = c(1,18))+
+  labs(color = "treatment", shape= "population") 
+
+nmds_dist_plot_trt34
+
 #axes 4 & 5
+
+#population & treatment
 nmds_dist_plot_pop_4_5 = ggplot(data = nmds_dist_scores, aes(x = NMDS4, y= NMDS5)) +
   geom_point(aes(colour = population, shape = treatment), size= 5, alpha = 0.75)   + theme_bw() +
   labs(color = "population", shape= "treatment") 
 
 nmds_dist_plot_pop_4_5
 
-#axes 5 & 6
-nmds_dist_plot_pop_5_6 = ggplot(data = nmds_dist_scores, aes(x = NMDS5, y= NMDS6)) +
-  geom_point(aes(colour = population, shape = treatment), size= 5, alpha = 0.75)   + theme_bw() +
-  labs(color = "population", shape= "treatment") 
+#just treatment
+nmds_dist_plot_trt45 = ggplot(data = nmds_dist_scores, aes(x = NMDS4, y= NMDS5)) +
+  geom_point(aes(colour = treatment), size= 5, alpha = 0.75)   + theme_bw() +
+  scale_color_manual(values = c("firebrick4" , "darkolivegreen4", "dodgerblue4")) +
+  scale_shape_manual(values = c(1,18))+
+  labs(color = "treatment", shape= "population") 
 
-nmds_dist_plot_pop_5_6
-
-#axes 6 & 7
-nmds_dist_plot_pop_6_7 = ggplot(data = nmds_dist_scores, aes(x = NMDS6, y= NMDS7)) +
-  geom_point(aes(colour = population, shape = treatment), size= 5, alpha = 0.75)   + theme_bw() +
-  labs(color = "population", shape= "treatment") 
-
-nmds_dist_plot_pop_6_7
+nmds_dist_plot_trt45
 
 
 #sleuthing out zeroes 
@@ -217,10 +243,10 @@ count_Indole_zero <- sum(data_scaled2$Indole_18.8 > 0) # 93
 
 summary(data_scaled2)
 
-all_bray_rel = vegdist(data_scaled2, method = 'gower')
-permanova_bray = adonis2(all_bray_rel ~ Population*treatment, perm= 999, data = all_groups)
-summary(permanova_bray)
-permanova_bray
+all_gower_rel = vegdist(data_scaled2, method = 'gower')
+permanova_gower = adonis2(all_bray_rel ~ Population*treatment, perm= 999, data = all_groups)
+summary(permanova_gower)
+permanova_gower
 
 # pops are different, treatments are different, but the way theyre responding across pops is the same
 
