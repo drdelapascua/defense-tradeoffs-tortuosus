@@ -17,9 +17,13 @@ library(ggplot2)
 library(effects)
 
 #pull data
-#paired_means <- read.csv("./data/paired_means.csv")
-dw <-  read.csv("./data/dw.csv")
-head(dw)
+paired_means <- read.csv("./data/paired_means.csv")
+controls <-  read.csv("./data/dw.csv") %>%
+  filter(treatment == "C")
+head(controls)
+
+colnames(paired_means)
+paired_means <- as.data.frame(paired_means)
 
 #question 1 - i want to know whether populations that have high underlying defenses invest more or less in induced defenses
 # Q2 - growth-defense trade-offs & association with environment
@@ -125,27 +129,122 @@ summary(Indole_m2) # no significant interaction with elevation
 
 #example model
 
-#I3M
-colnames(paired_means)
+### Indole
+#build model
 
-I3M_q1 <- lm(CW_I3M_16.7 ~ Control_I3M_16.7*Elevation.x, data = paired_means, na.action = na.exclude)
-summary(I3M_q1) #interaction is not significant, also not significant if by population
-I3M_q2 <- lm(CW_I3M_16.7 ~ Control_I3M_16.7 + Elevation.x, data = paired_means, na.action = na.exclude)
-summary(I3M_q2)
-I3M_q3 <- lm(CW_I3M_16.7 ~  Control_I3M_16.7, data = paired_means, na.action = na.exclude)
-summary(I3M_q3)
-
-#plot to see the relationship
-ggplot(data = paired_means, aes(x = Control_I3M_16.7, y = CW_I3M_16.7)) + 
-  geom_point() + 
-  geom_smooth(method = "lm")
+Indole_q1 <- lmer(Indole_CW ~ Indole_C + (1|Population), data = paired_means, na.action = na.exclude)
+summary(Indole_q1) #interaction is not significant, also not significant if by population
 
 # Compute EMMs
-emm <- emmeans(I3M_q1, c(""))
-# Perform post-hoc tests for interactions
-emm_pairs_specific <- pairs(emm)
-print(emm)
-emm_pairs_specific
+emtrends <- emtrends(Indole_q1, ~1, var = "Indole_C")
+emtrends 
+
+#plot to see the relationship
+ggplot(data = paired_means, aes(x = Indole_C, y = Indole_CW, color = Elevation, label + Elevation)) + 
+  geom_point(size = 3) + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")
+
+### OH-I3M
+#build model
+
+OHI3m_q1 <- lmer(OHI3M_CW ~ OHI3M_C + (1|Population), data = paired_means, na.action = na.exclude)
+summary(OHI3m_q1) #interaction is not significant, also not significant if by population
+
+# Compute EMMs
+emtrends <- emtrends(OHI3m_q1, ~1, var = "OHI3M_C")
+emtrends 
+
+#plot to see the relationship
+ggplot(data = paired_means, aes(x = OHI3M_C, y = OHI3M_CW, color = Elevation, label + Elevation)) + 
+  geom_point(size = 3) + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")
+
+
+### I3M
+#build model
+colnames(paired_means)
+paired_means <- as.data.frame(paired_means)
+I3M_q1 <- lmer(I3M_CW ~ I3M_C + (1|Population), data = paired_means, na.action = na.exclude)
+summary(I3M_q1) #interaction is not significant, also not significant if by population
+
+# Compute EMMs
+emtrends <- emtrends(I3M_q1, ~1, var = "I3M_C")
+emtrends 
+
+#plot to see the relationship
+ggplot(data = paired_means, aes(x = I3M_C, y = I3M_CW, color = Elevation, label + Elevation)) + 
+  geom_point(size = 3) + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")
+
+
+### Allyl
+
+### Butenyl
+
+
+
+### Q2
+
+### Allyl
+
+Allyl_q2 <- lmer(Allyl_7.4 ~ biomass + (1|Population), data = controls, na.action = na.exclude)
+summary(Allyl_q2) #interaction is not significant, also not significant if by population
+
+# Compute EMMs
+em1 <- emtrends(Allyl_q2, ~0, var = "biomass")
+em1
+
+### Butenyl
+
+Butenyl_q2 <- lmer(Butenyl_12.1 ~ biomass + (1|Population), data = controls, na.action = na.exclude)
+summary(Butenyl_q2) #interaction is not significant, also not significant if by population
+
+# Compute EMMs
+em1 <- emtrends(Butenyl_q2, ~0, var = "biomass")
+em1
+
+### OHI3M
+OHI3M_q2 <- lmer(OH.I3M_15.1 ~ biomass + (1|Population), data = controls, na.action = na.exclude)
+summary(OHI3M_q2) #interaction is not significant, also not significant if by population
+
+# Compute EMMs
+em1 <- emtrends(OHI3M_q2, ~0, var = "biomass")
+em1
+
+### I3M
+
+I3M_q2 <- lmer(I3M_16.7 ~ biomass + (1|Population), data = controls, na.action = na.exclude)
+summary(I3M_q2) #interaction is not significant, also not significant if by population
+
+# Compute EMMs
+em1 <- emtrends(I3M_q2, ~0, var = "biomass")
+em1
+
+### Indole
+Indole_q2 <- lmer(Indole_18.8 ~ biomass + (1|Population), data = controls, na.action = na.exclude)
+summary(Indole_q2) #interaction is not significant, also not significant if by population
+
+#plot a few
+
+# plot
+
+ggplot(data = controls, aes(x = Butenyl_12.1, y = biomass, color = Elevation, label = Elevation)) + 
+  geom_point(size = 3) + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")
+
+
+# Compute EMMs
+em1 <- emtrends(Indole_q2, ~0, var = "biomass")
+em1
+
 
 ### Testing for Interactions between constitutive defense level & elevation
 
@@ -290,7 +389,7 @@ ggplot(data = paired_means, aes(x = Control_Butenyl_12.1, y = CW_Butenyl_12.1, c
   geom_point(size = 3) + 
   geom_smooth(method = "lm", se = FALSE, color = "black") + 
   theme_minimal() + 
-  scale_color_gradient(low = "orange", high = "purple")
+  scale_color_gradient(low = "orange", high = "blue")
 
 ggplot(data = dl, aes(x = biomass, y = Flavonol_16.1, color = Elevation, label = Elevation)) + 
   geom_point(size = 3) + 

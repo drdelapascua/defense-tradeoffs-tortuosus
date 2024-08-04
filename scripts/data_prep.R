@@ -105,9 +105,9 @@ head(data)
 
 mf_means <-data %>% 
   # Summarize by maternal family
-  group_by(Population, treatment, mf) %>% 
+  group_by(Population, treatment, mf, Elevation) %>% 
   summarise(
-    X5MSO = mean(X5MSO_10.2),
+    X3MSO = mean(X3MSO_5.2),
     OHAlkenyl = mean(OH.Alkenyl_6),
     X4MSO = mean(X4MSO_7.1),
     Allyl = mean(Allyl_7.4),
@@ -127,9 +127,9 @@ mf_means <-data %>%
 # make pop means
 pop_means <- mf_means %>% 
   # Summarize by population
-  group_by(Population, treatment) %>% 
+  group_by(Population, treatment, Elevation) %>% 
   summarise(
-    GSL_X5MSO = mean(X5MSO),
+    GSL_X3MSO = mean(X3MSO),
     GSL_OHAlkenyl = mean(OHAlkenyl),
     GSL_X4MSO = mean(X4MSO),
     GSL_Allyl = mean(Allyl),
@@ -145,7 +145,11 @@ pop_means <- mf_means %>%
     GSL_Flavonol18 = mean(Flavonol18),
     GSL_Indole = mean(Indole)
   )
-  
+
+head(pop_means)
+
+pop_means <- as.data.frame(pop_means) 
+
 # save dfs
 write.csv(mf_means, "./data/mf_means.csv")
 write.csv(pop_means, "./data/pop_means.csv")
@@ -158,8 +162,31 @@ pop_means_long <- pop_means %>%
     values_to = "value") %>%
   separate(compound, into = c("compound type", "compound"), sep = "_")
 
+head(pop_means_long)
+
+pop_means_long <- as.data.frame(pop_means_long)
+
 # save long version of data
 write.csv(pop_means_long, "./data/pop_means_long.csv")
+head(mf_means)
+mf_means <- as.data.frame(mf_means)
+
+# paired means
+paired_means = mf_means %>%
+  pivot_wider(
+    # Specify id columns that shouldn't be spread
+    id_cols = c(Population, mf, Elevation),
+    # Specify where new column names should come from
+    names_from = treatment,
+    # Specify where values should come from
+    values_from = c(Allyl, Butenyl,  OHI3M, I3M, Indole))%>%
+  na.omit()
+
+head(paired_means)
+paired_means <- as.data.frame(paired_means)
+#save paired means
+
+write.csv(paired_means, "./data/paired_means.csv")
 
 
 ########## OLD CODE - Aggregating means (do in tidy way if we need means in the future)
