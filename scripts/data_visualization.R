@@ -90,6 +90,24 @@ ggplot(abother_means2, aes(x = Population, y = value, fill = compound)) +
   theme_minimal() +
   scale_fill_brewer(palette = "Set2")
 
+# Make a plot with only indole compounds
+
+# make df
+indole_cmpd_means <- pop_means_long %>%
+  filter(compound %in% c("OHI3M", "I3M", "Indole"))
+indole_cmpd_means
+#order by elevation
+indole_cmpd_means <- indole_cmpd_means %>%
+  mutate(Population = factor(Population, levels = unique(Population[order(Elevation)])))
+
+ggplot(indole_cmpd_means, aes(x = treatment, y = value, fill = compound)) + 
+  geom_bar(stat = "identity") +
+  facet_wrap(~ Population) +  # Create separate plots for each treatment
+  labs(x = "Population", y = "Mean Value", fill = "Compound") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2")
+
+
 ### > PCA for induced and non-induced
 
 # create filter two variables so we have one induced and one control

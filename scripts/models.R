@@ -95,7 +95,7 @@ summary(butenyl_m2) # overall positive effect of elevation on butenyls
 #population*treatment
 I3M_m1 <- lm(I3M_16.7 ~ Population*treatment, data = dw)
 summary(I3M_m1) 
-
+I3M_m1
 #with elevation*treatment
 I3M_m2 <- lm(I3M_16.7 ~ Elevation*treatment, data = dw)
 summary(I3M_m2)
