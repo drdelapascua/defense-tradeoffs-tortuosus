@@ -4,12 +4,6 @@
 
 ### Linear Mixed Models
 
-oo <- options(repos = "https://cran.r-project.org/")
-install.packages("Matrix")
-install.packages("lme4")
-install.packages("emmeans")
-install.packages('effects')
-
 #libraries
 library(lme4)
 library(nlme)
@@ -18,7 +12,6 @@ library(emmeans)
 library(dplyr)
 library(tidyr)
 library(lattice)
-install.packages("mgcv")
 library(mgcv)
 library(ggplot2)
 library(effects)
@@ -69,9 +62,20 @@ summary(x4mso_m2) # overall slight negative effect of elevation on 3MSO
 allyl_m1 <- lm(Allyl_7.4 ~ Population*treatment, data = dw) 
 summary(allyl_m1) # no significant interactions by population, SQ2 has more allyls than other pops
 
+### 5MSO
+# pop*trt
+x5mso_m1 <- lm(X5MSO_10.2 ~ Population*treatment, data = dw) 
+summary(x5mso_m1) # no significant interactions by population
+
+# no crossed effects significant
+
 #with elevation*treatment
-butenyl_m2 <- lm(Butenyl_12.1 ~ Elevation*treatment, data = dw)
-summary(butenyl_m2) # overall positive effect of elevation on butenyls
+x5mso_m2 <- lm(X5MSO_10.2 ~ Elevation*treatment, data = dw)
+summary(x5mso_m2) # elevation significant
+
+#with elevation*treatment
+allyl_m2 <- lm(Allyl_7.4 ~ Elevation*treatment, data = dw)
+summary(allyl_m2) # overall positive effect of elevation on butenyls
 
 
 ### Butenyl

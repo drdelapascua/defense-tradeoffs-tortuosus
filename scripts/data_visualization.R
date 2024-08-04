@@ -14,9 +14,13 @@ library('corrr')
 library(factoextra)
 library(vegan)
 library(missForest)
+library(viridis)
 
 ### > load data ----
-pop_means_long <- read.csv("./data/pop_means_long.csv")
+pop_means_long <- read.csv("./data/pop_means_long.csv") %>%
+  select(-compound.type) %>%
+  select(-X)
+head(pop_means_long)
 
 ### > Stacked bar plot ----
 
@@ -47,6 +51,44 @@ ggplot(small_cmpd_means, aes(x = treatment, y = value, fill = compound)) +
   labs(x = "Population", y = "Mean Value", fill = "Compound") +
   theme_minimal()
 
+# build a barplot with allyl, butenyl, and then all other compounds
+head(pop_means_long)
+
+other_means <- pop_means_long %>%
+  filter(!compound %in% c("Allyl", "Butenyl")) %>% # filter out allyl and butenyl
+  group_by(Population, treatment, Elevation) %>%
+  summarise(value = sum(value), .groups = 'drop')
+
+head(other_means)
+other_means <- as.data.frame(other_means)
+head(other_means)
+
+#make df
+head(ab_means)
+head(other_means)
+
+#merge ab and other means
+abother_means <- bind_rows(other_means, ab_means)%>%
+  mutate(compound = if_else(is.na(compound), "All other compounds", compound))
+
+head(abother_means)
+
+abother_means2 <- abother_means %>%
+  mutate(Population = factor(Population, levels = unique(Population[order(Elevation)])))
+
+ggplot(abother_means2, aes(x = treatment, y = value, fill = compound)) + 
+  geom_bar(stat = "identity") +
+  facet_wrap(~ Population) +  # Create separate plots for each treatment
+  labs(x = "Population", y = "Mean Value", fill = "Compound") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2")
+
+ggplot(abother_means2, aes(x = Population, y = value, fill = compound)) + 
+  geom_bar(stat = "identity") +
+ # facet_wrap(~ Population) +  # Create separate plots for each treatment
+  labs(x = "Population", y = "Mean Value", fill = "Compound") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2")
 
 ### > PCA for induced and non-induced
 

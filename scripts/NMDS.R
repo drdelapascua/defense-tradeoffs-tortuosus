@@ -14,26 +14,28 @@ library(tibble)
 library(mclust)
 
 ### load data
-dl <-  read.csv("./data/dw.csv") %>%
-  select("Population", "mf", "rep", "treatment", "X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "X3MT_13.6", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")
+dw <-  read.csv("./data/dw.csv") %>%
+  select("Population", "mf", "rep", "Elevation", "treatment", "X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "X3MT_13.6", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")
   #whatever order you put elect in is the order of the df, pop mf trt first
 
 
 ### center and standardize data
 # standardizing the data (all will have variance = 1)
 # centering gives all a mean of 0
-dl_scaling <- as.data.frame(scale(dl[5:19]))
-dl_scaled <- dl[1:4]
-dl_scaled[5:19] <- dl_scaling # merge two dataframes
+head(dw)
+dw_scaling <- as.data.frame(scale(dw[6:20]))
+dw_scaled <- dw[1:5]
+dw_scaled[6:20] <- dw_scaling # merge two dataframes
 
 # create data frame that is just columns with scaled compounds and labels as colnames
-data_scaled2 = dl_scaled %>%
+data_scaled2 = dw_scaled %>%
   # make and ID variable
-  mutate(ID = paste(Population, treatment, mf, rep, sep = "_")) %>%
+  mutate(ID = paste(Population, treatment, mf, rep, Elevation, sep = "_")) %>%
   # make rownames combo of pop, tmt, mf, and rep
   column_to_rownames(var = "ID")  %>%
-  select(-Population, -treatment, -mf, -rep)
-  
+  select(-Population, -treatment, -mf, -rep, -Elevation)
+
+
 # Perform NMDS
 
 # bray - needs to be positive, could use gower
@@ -68,6 +70,9 @@ plot(nmds_result5, type = "points", display = "sites")  # 'sites' for samples/ob
 scores <- scores(nmds_result5, display = "sites")  # Extract NMDS scores
 scores # gives by each individual ID (rownames)
 
+plot(nmds_result5)
+envfit
+
 # Calculate correlations between original variables and NMDS scores
 correlations1 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 1]))
 correlations2 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 2]))
@@ -80,12 +85,29 @@ correlations5 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 5]))
 #when error - ask what is it doing/trying to do?
 
 correlations_1 # strongest is negative butenyl, -.8. Allyl is .5, 4MSO -.6, 3MSO is .65
-correlations_2 # 
-correlations_3
-correlations_4 
-correlations_5 
-correlations_6
-correlations_7
+correlations_2 # pos associated with Flavonol-18 & 3MT, neg associated w/ 5MSO
+correlations_3 # pos associated with OH-Alkenyl, neg associated with Allyl, 5MSO & Flavonol 18
+correlations_4 # pos associated with i3M and 4MSO, neg associated with indole
+correlations_5 # pos associated with indole, neg associated with flavonol-16 and OH-Alkenyl
+
+# compounds to dig into: 
+# 3MSO
+# 4MSO
+# Allyl
+# OH-Alkenyl
+# 5MSO
+# Butenyl
+# 3MT
+# I3M
+# Flavonol-16
+# Flavonol-18
+# Indole
+
+# 4 not included:
+# MSOO
+# OH-I3M
+# 4MT
+# Flavonol-17
 
 df <- data.frame(
   Axis_1 = correlations_1,
@@ -130,11 +152,11 @@ barplot(correlations_7, names.arg = colnames(data_scaled2),
 #visualize NMDS
 
 #create grouping variable
-all_groups = dl_scaled %>%
-  select(Population, treatment, mf, rep)
+all_groups = dw_scaled %>%
+  select(Population, treatment, mf, rep, Elevation)
 
 nmds_dist_scores = as.data.frame(scores(nmds_result5, "sites")) %>%
-  mutate(population = all_groups$Population, treatment = all_groups$treatment, mf = all_groups$mf, rep = all_groups$rep)
+  mutate(population = all_groups$Population, treatment = all_groups$treatment, mf = all_groups$mf, rep = all_groups$rep, elevation = all_groups$Elevation)
 
 # plot it 
 nmds_dist_plot_trt = ggplot(data = nmds_dist_scores, aes(x = NMDS1, y= NMDS2)) +
@@ -146,8 +168,9 @@ nmds_dist_plot_trt = ggplot(data = nmds_dist_scores, aes(x = NMDS1, y= NMDS2)) +
 nmds_dist_plot_trt
 
 nmds_dist_plot_pop = ggplot(data = nmds_dist_scores, aes(x = NMDS1, y= NMDS2)) +
-  geom_point(aes(colour = population, shape = treatment), size= 5, alpha = 0.75)   + theme_bw() +
-  labs(color = "population", shape= "treatment") 
+  geom_point(aes(colour = elevation, shape = treatment), size= 5, alpha = 0.75)   + theme_bw() +
+  facet_wrap(~treatment) +
+  labs(color = "Elevation", shape= "treatment") 
 
 nmds_dist_plot_pop
 
