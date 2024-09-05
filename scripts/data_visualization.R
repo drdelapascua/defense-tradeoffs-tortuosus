@@ -105,7 +105,23 @@ ggplot(indole_cmpd_means, aes(x = treatment, y = value, fill = compound)) +
   facet_wrap(~ Population) +  # Create separate plots for each treatment
   labs(x = "Population", y = "Mean Value", fill = "Compound") +
   theme_minimal() +
-  scale_fill_brewer(palette = "Set2")
+  scale_fill_brewer(palette = "Set3")
+
+#take out I3M
+indole_cmpd_means_noI3M <- pop_means_long %>%
+  filter(compound %in% c("OHI3M", "Indole"))
+indole_cmpd_means_noI3M
+
+#order by elevation
+indole_cmpd_means_noI3M <- indole_cmpd_means_noI3M %>%
+  mutate(Population = factor(Population, levels = unique(Population[order(Elevation)])))
+
+ggplot(indole_cmpd_means_noI3M, aes(x = treatment, y = value, fill = compound)) + 
+  geom_bar(stat = "identity") +
+  facet_wrap(~ Population) +  # Create separate plots for each treatment
+  labs(x = "Population", y = "Mean Value", fill = "Compound") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set3")
 
 
 ### > PCA for induced and non-induced

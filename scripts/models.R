@@ -21,7 +21,8 @@ paired_means <- read.csv("./data/paired_means.csv")
 controls <-  read.csv("./data/dw.csv") %>%
   filter(treatment == "C")
 head(controls)
-
+dw <- read.csv("./data/dw.csv")
+  
 colnames(paired_means)
 paired_means <- as.data.frame(paired_means)
 
@@ -132,8 +133,14 @@ summary(Indole_m2) # no significant interaction with elevation
 ### Indole
 #build model
 
+#does treatment have an effect?
+head(dw)
+Indole_trt <- lm(Indole_18.8 ~ treatment ,data = dw)
+summary(Indole_trt)
+#assess trade-off
 Indole_q1 <- lmer(Indole_CW ~ Indole_C + (1|Population), data = paired_means, na.action = na.exclude)
 summary(Indole_q1) #interaction is not significant, also not significant if by population
+anova(Indole_q1) # not sig different across pops
 
 # Compute EMMs
 emtrends <- emtrends(Indole_q1, ~1, var = "Indole_C")
