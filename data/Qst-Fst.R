@@ -7,7 +7,9 @@ library(tidyr)
 library(dplyr)
 library(tidyverse)
 
-### pull data ----
+### pull & prepare data ----
+
+# move to prep script??
 
 # genetic data
 fst <- read.csv("./data/populations.fst_summary_full_dist_matrix.csv") %>%
@@ -33,25 +35,82 @@ fst <- fst %>%
   arrange(`Population 1`, `Population 2`)
 
 #  rename columns
-colnames(fst) <- c("Population 1", "Population 2", "Fst")
+colnames(fst) <- c("Pop1", "Pop2", "Fst")
 
 # trait data
-dw <-  read.csv("./data/dw.csv") %>%
-  select("Population", "mf", "rep", "Elevation", "treatment", "X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "X3MT_13.6", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")
+mf_means <-  read.csv("./data/mf_means.csv") %>%
+  select("Population", "mf", "treatment", "X3MSO", "OHAlkenyl", "X4MSO", "Allyl", "X5MSO", "Butenyl", "X3MT", "MSOO", "OHI3M", "X4MT", "Flavonol16", "I3M", "Flavonol17", "Flavonol18", "Indole")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SHA", "SQ1", "SQ3", "WL1", "WL2","WL3", "YO1", "YO10")) %>%
+  filter(treatment == "C") %>% # filter for the controls
+  select(-"treatment")
 
-# filter so only the fst populations are here 
-dw <- dw %>% 
-  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SHA", "SQ1", "SQ3", "WL1", "WL2","WL3", "YO1", "YO10"))
-
+# 3 pops missing - yo1, sq3, sha
 
 ### calculate Qst ----
 
-# Calculate variance components
+# go through with one compound 
+
+# Calculate mean and variance within each population
+indole_population_stats <- mf_means %>%
+  group_by(Population) %>%
+  summarise(
+    PopMean = mean(Indole),
+    PopVar = var(Indole),
+    .groups = 'drop'
+  )
+
+# Get pairwise combinations of populations
+population_pairs <- expand.grid(Pop1 = unique(indole_population_stats$Population),
+                                Pop2 = unique(indole_population_stats$Population)) %>%
+  filter(Pop1 != Pop2)
+
+# Initialize a data frame to store pairwise Qst results
+pairwise_qst <- data.frame(Pop1 = character(), Pop2 = character(), Qst = numeric(), stringsAsFactors = FALSE)
+
+# Loop through each pair to calculate Qst
+for (i in 1:nrow(population_pairs)) {
+  pair <- population_pairs[i, ]
+  pop1_stats <- indole_population_stats %>% filter(Population == pair$Pop1)
+  pop2_stats <- indole_population_stats %>% filter(Population == pair$Pop2)
+  
+  # Calculate between-population variance for this pair
+  mean_of_pop_means <- mean(c(pop1_stats$PopMean, pop2_stats$PopMean))
+  between_pop_var <- sum((c(pop1_stats$PopMean, pop2_stats$PopMean) - mean_of_pop_means)^2) / 1 # 1 degree of freedom for two populations
+  
+  # Calculate within-population variance
+  within_pop_var <- mean(c(pop1_stats$PopVar, pop2_stats$PopVar))
+  
+  # Calculate Qst
+  qst <- between_pop_var / (between_pop_var + within_pop_var)
+  
+  # Store the result
+  indole_pairwise_qst <- rbind(pairwise_qst, data.frame(Pop1 = pair$Pop1, Pop2 = pair$Pop2, Qst = qst))
+}
+
+left_join(indole_pairwise_qst, fst, by = c("Pop1", "Pop2"))
+
+# do for all other compounds?
+
+# outstanding questions
+# > this assumes balanced half sib design - how do i modify the loop to account for unbalanced design?
+# > how is this method different from pop-level fst? Literature says pairwise is ok, but having trouble finding examples of code
+# >> this package may help? https://github.com/kjgilbert/QstFstComp 
+# > QPC - getting code from elena, trouble reading the package she worked from https://github.com/emjosephs/qpc-maize
 
 
+### other method? ----
+install.packages("devtools")
+library(devtools)
+install_github("kjgilbert/QstFstComp")
+library(QstFstComp)
 
-# Extract between-population and total variances
+?QstFstComp
 
 # Calculate Qst for each trait
+qst_result <- QstFstComp(data = mf_means, 
+                         trait = "Indole", 
+                         pop = "Population", 
+                         model = "half.sib.dam", 
+                         qst = TRUE) 
 
 # print Qst values
