@@ -45,6 +45,8 @@ unique(pop_data$Population)
 
 summary(pop_data)
 
+### > join data together ----
+
 # join mass data & location data with GSL data
 
 #join gsl and mass/rack location data by rack & location
@@ -54,7 +56,8 @@ dim(biomass)
 dim(GSL)
 dim(data)
 
-#why are these not the same
+### > clean up data ----
+
 # Create combined keys
 GSL$key <- paste(GSL$Rack, GSL$Location)
 biomass$key <- paste(biomass$Rack, biomass$Location)
@@ -93,13 +96,42 @@ data <- data %>%
 
 table(is.na(data)) # FALSE, no NAs
 
+### > calculating GSL sums ----
+
+# total GSLs
+head(data)
+#add all to a col
+GSL_to_sum <- c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "X3MT_13.6", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "I3M_16.7", "Indole_18.8")
+GSL_sums <- rowSums(data[, GSL_to_sum], na.rm = TRUE)
+data$totalGSL <- GSL_sums 
+head(data)
+
+hist(x = data$totalGSL) # pretty normal, a little skewed left
+
+# total indolic
+indole_to_sum <- c("OH.I3M_15.1", "I3M_16.7", "Indole_18.8")
+indole_sums <- rowSums(data[, indole_to_sum], na.rm = TRUE)
+data$totalindole <- indole_sums 
+head(data)
+
+hist(x = data$totalindole) # most have low ampounts of indoles, few have high amount, 
+
+plot(x = data$totalaliphatic, y = data$totalindole)
+
+# total aliphatic
+ali_to_sum <- c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "X3MT_13.6", "MSOO_13.8", "X4MT._15.5")
+ali_sums <- rowSums(data[, ali_to_sum], na.rm = TRUE)
+data$totalaliphatic <- ali_sums # pretty normal, a little skewed left
+head(data)
+
+hist(x = data$totalaliphatic) # more normal
 
 ### > save big data table ----
 
 #write.csv(data, "~/GitHub/defense-tradeoffs-tortuosus/data/dl.csv")
 write.csv(data, "./data/dw.csv")
 
-# aggregating means
+### > aggregating means ----
 
 head(data)
 
@@ -121,7 +153,10 @@ mf_means <-data %>%
     I3M = mean(I3M_16.7),
     Flavonol17 = mean(Flavonol_17.5),
     Flavonol18 = mean(Flavonol_18.5),
-    Indole = mean(Indole_18.8)
+    Indole = mean(Indole_18.8),
+    totalaliphatic = mean(totalaliphatic),
+    totalindole = mean(totalindole),
+    totalGSL = mean(totalGSL)
   )
 
 # make pop means
@@ -143,7 +178,10 @@ pop_means <- mf_means %>%
     GSL_I3M = mean(I3M),
     GSL_Flavonol17 = mean(Flavonol17),
     GSL_Flavonol18 = mean(Flavonol18),
-    GSL_Indole = mean(Indole)
+    GSL_Indole = mean(Indole),
+    GSL_totalaliphatic = mean(totalaliphatic),
+    GSL_totalindole = mean(totalindole),
+    GSL_totalGSL = mean(totalGSL)
   )
 
 head(pop_means)
@@ -171,7 +209,7 @@ write.csv(pop_means_long, "./data/pop_means_long.csv")
 head(mf_means)
 mf_means <- as.data.frame(mf_means)
 
-# paired means
+# > paired means ----
 paired_means = mf_means %>%
   pivot_wider(
     # Specify id columns that shouldn't be spread
@@ -179,9 +217,10 @@ paired_means = mf_means %>%
     # Specify where new column names should come from
     names_from = treatment,
     # Specify where values should come from
-    values_from = c(Allyl, Butenyl,  OHI3M, I3M, Indole))%>%
+    values_from = c(X3MSO, OHAlkenyl, X4MSO, Allyl, X5MSO, Butenyl, X3MT, MSOO, OHI3M, X4MT, I3M, Indole, totalaliphatic, totalindole, totalGSL))%>%
   na.omit()
 
+colnames(mf_means)
 head(paired_means)
 paired_means <- as.data.frame(paired_means)
 #save paired means
@@ -289,16 +328,3 @@ paired_means <- left_join(x = c_df, y = cw_df, by = c("mf", "Population"))
 # save df
 write.csv(paired_means, "~/GitHub/defense-tradeoffs-tortuosus/data/paired_means.csv")
 
-
-############################### OLD CODE ################################
-
-
-# create new variable with all compounds added together
-#head(data)
-
-#columns_to_sum <- c("3MSO_5.2", "OH-Alkenyl_6", "4MSO_7.1", "Allyl_7.4", "5MSO_10.2", "Butenyl_12.1", "3MT_13.6", "MSOO_13.8", "OH I3M_15.1", "4MT _15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")
-#sums <- rowSums(data[, columns_to_sum], na.rm = TRUE)
-
-#data$totalGSL <- sums
-
-#head(data)

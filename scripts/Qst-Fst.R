@@ -44,9 +44,16 @@ mf_means <-  read.csv("./data/mf_means.csv") %>%
   filter(treatment == "C") %>% # filter for the controls
   select(-"treatment")
 
-# 3 pops missing - yo1, sq3, sha
+# 3 pops missing - yo1, sq3, sha  (low germination)
 
 ### calculate Qst ----
+
+# trying package
+library(devtools)
+install_github("kjgilbert/QstFstComp")
+library(QstFstComp)
+
+
 
 # go through with one compound 
 
@@ -91,11 +98,11 @@ left_join(indole_pairwise_qst, fst, by = c("Pop1", "Pop2"))
 
 # do for all other compounds?
 
-# outstanding questions
+# outstanding questions & next steps
 # > this assumes balanced half sib design - how do i modify the loop to account for unbalanced design?
 # > how is this method different from pop-level fst? Literature says pairwise is ok, but having trouble finding examples of code
 # >> this package may help? https://github.com/kjgilbert/QstFstComp 
-# > QPC - getting code from elena, trouble reading the package she worked from https://github.com/emjosephs/qpc-maize
+# > driftsel - this package can do qpc type analysis on unbalanced half-sib design on different sets of individuals (genotype vs phenotype)
 
 
 ### other method? ----
