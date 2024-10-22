@@ -9,40 +9,40 @@ library(tidyverse)
 
 ### pull & prepare data ----
 
-# move to prep script??
 
+<<<<<<< HEAD
+### Genetic data (Fst)
+
+# load data
+
+=======
 # genetic data
 fst <- read.csv("./data/populations.fst_summary_full_dist_matrix.csv") %>%
   select(-c("YO11", "WV", "LVTR", "LV3")) #sxclude pops not in my study (columns) %>%
   filter(!X %in% c("YO11", "WV", "LVTR", "LV3")) #exclude pops not in my study (rows)
+>>>>>>> parent of 5d35ab4 (update)
 
-# change row X to rownames
-rownames(fst) <- fst$X
+### Trait Data (Qst)
 
-# get rid of extra col with IDs
-fst <- fst %>%
-  select(-X) #wasnt working as just one pipe for some reason? 
+#load trait data
 
-# make table
-fst <- as.matrix(fst)
-fst <- as.data.frame(as.table(fst))
-
-head(fst)
-
-# get rid of duplicates
-fst <- fst %>%
-  filter(`Population 1` != `Population 2`) %>%
-  arrange(`Population 1`, `Population 2`)
-
-#  rename columns
-colnames(fst) <- c("Pop1", "Pop2", "Fst")
-
-# trait data
-mf_means <-  read.csv("./data/mf_means.csv") %>%
-  select("Population", "mf", "treatment", "X3MSO", "OHAlkenyl", "X4MSO", "Allyl", "X5MSO", "Butenyl", "X3MT", "MSOO", "OHI3M", "X4MT", "Flavonol16", "I3M", "Flavonol17", "Flavonol18", "Indole")%>% 
-  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SHA", "SQ1", "SQ3", "WL1", "WL2","WL3", "YO1", "YO10")) %>%
+#total gsl
+GSL_totals <-  read.csv("./data/dw.csv") %>%
   filter(treatment == "C") %>% # filter for the controls
-  select(-"treatment")
+  select("Population", "mf", "totalGSL")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SHA", "SQ1", "SQ3", "WL1", "WL2","WL3", "YO1", "YO10"))
+
+#total aliphatic
+aliphatic_totals <-  read.csv("./data/dw.csv") %>%
+  filter(treatment == "C") %>% # filter for the controls
+  select("Population", "mf", "totalaliphatic")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SHA", "SQ1", "SQ3", "WL1", "WL2","WL3", "YO1", "YO10"))
+
+#total indole
+indole_totals <-  read.csv("./data/dw.csv") %>%
+  filter(treatment == "C") %>% # filter for the controls
+  select("Population", "mf", "totalindole")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SHA", "SQ1", "SQ3", "WL1", "WL2","WL3", "YO1", "YO10"))
 
 # 3 pops missing - yo1, sq3, sha  (low germination)
 
