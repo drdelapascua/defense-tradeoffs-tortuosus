@@ -10,17 +10,14 @@ library(tidyverse)
 ### pull & prepare data ----
 
 
-<<<<<<< HEAD
 ### Genetic data (Fst)
 
-# load data
+genotype_data <- readRDS("~/GitHub/defense-tradeoffs-tortuosus/data/genotype_data.RDS")
 
-=======
-# genetic data
-fst <- read.csv("./data/populations.fst_summary_full_dist_matrix.csv") %>%
-  select(-c("YO11", "WV", "LVTR", "LV3")) #sxclude pops not in my study (columns) %>%
-  filter(!X %in% c("YO11", "WV", "LVTR", "LV3")) #exclude pops not in my study (rows)
->>>>>>> parent of 5d35ab4 (update)
+ind_ids_reassigned <- read_csv("data/ind_ids_reassigned.csv", 
+                               +     col_types = cols(no = col_skip(), site = col_skip(), 
+                                                      +         order = col_skip()))
+
 
 ### Trait Data (Qst)
 
@@ -52,10 +49,6 @@ indole_totals <-  read.csv("./data/dw.csv") %>%
 library(devtools)
 install_github("kjgilbert/QstFstComp")
 library(QstFstComp)
-
-
-
-# go through with one compound 
 
 # Calculate mean and variance within each population
 indole_population_stats <- mf_means %>%
