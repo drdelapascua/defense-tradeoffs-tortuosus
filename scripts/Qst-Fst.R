@@ -14,9 +14,9 @@ library(tidyverse)
 
 genotype_data <- readRDS("~/GitHub/defense-tradeoffs-tortuosus/data/genotype_data.RDS")
 
-ind_ids_reassigned <- read_csv("data/ind_ids_reassigned.csv", 
-                               +     col_types = cols(no = col_skip(), site = col_skip(), 
-                                                      +         order = col_skip()))
+genotype_data$label <- rownames(genotype_data)
+
+ind_ids_reassigned <- read_csv("data/ind_ids_reassigned.csv")
 
 
 ### Trait Data (Qst)
