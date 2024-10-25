@@ -5,7 +5,7 @@
 # Compute grand mean and variance of family mean resistance for control treatment
 
 
-# Compute mean and variance across all families of the difference in family mean resistance in damage vs control plants
+# Compute mean and variance across all families of the *difference* in family mean resistance in damage vs control plants
 
 
 # Draw population level mean and variance for constitutive resistance from respective sampling distributions
