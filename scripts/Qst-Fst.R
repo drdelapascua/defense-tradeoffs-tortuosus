@@ -59,6 +59,14 @@ fst.dat <- right_join(filtered_merged_data, key, by = c("pop" = "pop_name")) %>%
   mutate(pop = ifelse(is.na(pop_number), pop, pop_number)) %>%
   select(-pop_number)
   
+# combine pop and mf to make each mf a unique ID
+fst.dat <- fst.dat %>%
+  mutate(merged_col = paste(pop, mf, sep = "")) %>%
+  select(-mf) %>%
+  rename(mf = merged_col) %>%
+  select(mf, everything()) %>%
+  select(pop, everything())
+
 ### Trait Data (Qst)
 
 #load trait data
@@ -89,7 +97,7 @@ indole_totals <-  read.csv("./data/dw.csv") %>%
 colnames(GSL_totals) = c("pop", "mf", "totalGSL")
 
 # Aliphatics
-colnames(aliphatic_totals) = c("pop", "mf", "totalalphatics")
+colnames(aliphatic_totals) = c("pop", "mf", "totalaliphatics")
 
 # Indoles 
 colnames(indole_totals) = c("pop", "mf", "totalindoles")
@@ -111,6 +119,27 @@ indole.dat <- right_join(indole_totals, key, by = c("pop" = "pop_name")) %>%
   mutate(pop = ifelse(is.na(pop_number), pop, pop_number)) %>%
   select(-pop_number)
 
+# combine pop and mf to make each mf a unique ID
+
+# total GSLs
+gsl.dat <- gsl.dat %>%
+  mutate(merged_col = paste(pop, mf, sep = "")) %>%
+  select(pop, merged_col, totalGSL)
+colnames(gsl.dat) <- c("pop", "mf", "totalGSL")
+
+# total indoles
+indole.dat <- indole.dat %>%
+  mutate(merged_col = paste(pop, mf, sep = "")) %>%
+  select(pop, merged_col, totalindoles)
+colnames(indole.dat) <- c("pop", "mf", "totalindoles")
+
+# total aliphatics
+aliphatic.dat <- aliphatic.dat %>%
+  mutate(merged_col = paste(pop, mf, sep = "")) %>%
+  select(pop, merged_col, totalaliphatics)
+colnames(aliphatic.dat) <- c("pop", "mf", "totalaliphatics")
+
+
 # make sure everything is in numerical form
 fst.dat[] <- lapply(fst.dat, as.numeric)
 gsl.dat[] <- lapply(gsl.dat, as.numeric)
@@ -119,8 +148,11 @@ aliphatic.dat[] <- lapply(aliphatic.dat, as.numeric)
 
 # run qst fst
 
-result <- QstFstComp::QstFstComp(fst.dat = fst.dat, qst.dat = gsl.dat, numpops = 13, breeding.design = "half.sib.dam")
+result.gsl <- QstFstComp::QstFstComp(fst.dat = fst.dat, qst.dat = gsl.dat, numpops = 13, breeding.design = "half.sib.dam")
 
+result.indole <- QstFstComp::QstFstComp(fst.dat = fst.dat, qst.dat = indole.dat, numpops = 13, breeding.design = "half.sib.dam")
+
+result.aliphatic <- QstFstComp::QstFstComp(fst.dat = fst.dat, qst.dat = aliphatic.dat, numpops = 13, breeding.design = "half.sib.dam")
 
 
 ### calculate Qst ----
