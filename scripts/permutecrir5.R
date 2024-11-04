@@ -123,7 +123,7 @@ tcrit=qt(0.975,numfams)           # critical value of t statistic with numfams d
 chi2critlo=qchisq(.975,numfams-1) # critical lower value of chi-square statistic with numfams-1 degrees of freedom     
 chi2critup=qchisq(.025,numfams-1) # critical upper value of chi-square statistic with numfams-1 degrees of freedom   
 
-data = indole_totals
+data = GSL_totals
 attach(data)  # column headings in datafile must be fam, trt, rep, res
 
 Nc=Nd=Cest=Dest=Cc=Cd=matrix(0,numfams,1)
