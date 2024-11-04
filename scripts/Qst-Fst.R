@@ -154,6 +154,12 @@ result.indole <- QstFstComp::QstFstComp(fst.dat = fst.dat, qst.dat = indole.dat,
 
 result.aliphatic <- QstFstComp::QstFstComp(fst.dat = fst.dat, qst.dat = aliphatic.dat, numpops = 13, breeding.design = "half.sib.dam")
 
+# add more sims
+
+result.gsl.10000sims <- QstFstComp::QstFstComp(fst.dat = fst.dat, qst.dat = gsl.dat, numpops = 13, nsim = 10000, breeding.design = "half.sib.dam")
+
+result.gsl.50000sims <- QstFstComp::QstFstComp(fst.dat = fst.dat, qst.dat = gsl.dat, numpops = 13, nsim = 50000, breeding.design = "half.sib.dam")
+
 
 ### calculate Qst ----
 
