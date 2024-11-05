@@ -24,7 +24,7 @@
 # libararies
 library(tidyverse)
 
-# prep script for above
+# prep script for above format
 
 #total gsl
 GSL_totals <-  read.csv("./data/mf_means.csv") %>%
@@ -112,12 +112,12 @@ numfams= 19
 #       discard values less than -Cmin
 #   gonormal = 0 -> try generating new family mean constitutive and induced
 #       resistances until Imean > -Cmin; this will be slower.
-gonormal=0 
+gonormal=1 
 
 
 # ***********************************************************************************
 
-
+# set some parameters
 q=numfams-1
 tcrit=qt(0.975,numfams)           # critical value of t statistic with numfams degrees of freedom
 chi2critlo=qchisq(.975,numfams-1) # critical lower value of chi-square statistic with numfams-1 degrees of freedom     
@@ -126,27 +126,29 @@ chi2critup=qchisq(.025,numfams-1) # critical upper value of chi-square statistic
 data = GSL_totals
 attach(data)  # column headings in datafile must be fam, trt, rep, res
 
-Nc=Nd=Cest=Dest=Cc=Cd=matrix(0,numfams,1)
+Nc=Nd=Cest=Dest=Cc=Cd=matrix(0,numfams,1) # making matrices for each variable (see below for what they are)
 
+# Calculate population-level means and coeffs of variation of each treatment
 for (f in 1:numfams) {
-    
+  # loop through each population,   
     I=which(fam==f & trt==1) 	# find control plants for fam f
-    Nc[f]=length(I)
+    Nc[f]=length(I)           # Nc = number of reps in each population in the control trt
     x=res[I]
-    Cest[f]=mean(x)           # find the fam mean resistance
-    Cc[f]=sd(x)/Cest[f]      	# and coefficient of variation
+    Cest[f]=mean(x)           # Cest = population mean resistances in control plants
+    Cc[f]=sd(x)/Cest[f]      	# Cc =  population coefficient of variation in control plants 
 
     I=which(fam==f & trt==2) 	# repeat for damage trt.
-    Nd[f]=length(I)    
+    Nd[f]=length(I)           # Nd = number of reps in each population in the damage trt
     x=res[I]
-    Dest[f]=mean(x)
-    Cd[f]=sd(x)/Dest[f]    
+    Dest[f]=mean(x)           # Dest = population mean resistance in damaged plants
+    Cd[f]=sd(x)/Dest[f]       # Cd = population coefficient of variation in damaged plants
     
 }
 
+# Calculate other parameters
 Iest=Dest-Cest      # difference measure of induced resistance
-CVs=(Nc*Cc+Nd*Cd)/(Nc+Nd)     # weighted mean CV across trts., by fam
-CV=mean(CVs)                  # mean weighted CV across families 
+CVs=(Nc*Cc+Nd*Cd)/(Nc+Nd)     # weighted mean CV across trts., by pop
+CV=mean(CVs)                  # mean weighted CV across pops 
 sigma2=log(1+CV^2)                  
 sigma=sigma2^.5               # SD of exponent in lognormal resistance 
 
@@ -174,23 +176,23 @@ plot(Cest,Dest,type="p",
 )
 lines(xx,xx)
 
-# compute confidence interval for population mean and among-fam variance in constitutive resistance
+# compute confidence interval for species mean and among-pop variance in constitutive resistance
 Cmeanhat=mean(Cest)   
 Cvarhat=var(Cest)
 SE.Cmean=(Cvarhat/numfams)^.5
 CI.Cmean=c(Cmeanhat-tcrit*SE.Cmean, Cmeanhat+tcrit*SE.Cmean)
 CI.Cvar=c(Cvarhat*q/chi2critlo, Cvarhat*q/chi2critup)
 
-# compute confidence interval for population mean and among-fam variance in induced resistance
-Imeanhat=mean(Iest)          
+# compute confidence interval for species mean and among-pop variance in induced resistance
+Imeanhat=mean(Iest) # uses Iest, which is the difference from Damaged - Control         
 Ivarhat=var(Iest)
 SE.Imean=(Ivarhat/numfams)^.5
 CI.Imean=c(Imeanhat-tcrit*SE.Imean, Imeanhat+tcrit*SE.Imean)
 CI.Ivar=c(Ivarhat*q/chi2critlo, Ivarhat*q/chi2critup)
 
 # observed tradeoff measures
-corrobs=cor(Iest,Cest)          # correlation measure of tradoff
-bobs=cov(Dest,Cest)/var(Cest)   # slope measure of tradeoff
+corrobs=cor(Iest,Cest)          # correlation measure of trade-off
+bobs=cov(Dest,Cest)/var(Cest)   # slope measure of trade-off
 
 print("Observed correlation between induced (damage minus control)and constitutive (control) resistance",quote=FALSE)
 corrobs
@@ -199,7 +201,7 @@ bobs
 
 correst=best=matrix(0,1,maxreps)
 
-# generate pseudodata with no correlation between C and I  
+# generate pseudodata with no correlation between C and I  using Monte Carlo sims
 
 rep=0
 
@@ -207,7 +209,7 @@ while(rep<maxreps) {
 	
 	done=0
     
-    # generate grand fam mean and var for C and I using their confidence intervals 
+    # generate grand pop mean and var for C and I using their confidence intervals 
     
     Cmean=Inf  
     while( Cmean<CI.Cmean[1]||Cmean>CI.Cmean[2] ) {
@@ -230,7 +232,7 @@ while(rep<maxreps) {
     }        
  	Isd=Ivar^.5
            
- 	# generate (lognormal) resistance measures for each fam in control and damage treatments
+ 	# generate (lognormal) resistance measures for each pop in control and damage treatments
  	sig2=log(1+Cvar/Cmean^2)
  	C=exp( rnorm(numfams,log(Cmean)-0.5*sig2,sig2^.5) ) # generate lognormal C's                 
  	Cmin=min(C)
