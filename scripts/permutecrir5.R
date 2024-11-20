@@ -29,7 +29,7 @@ library(tidyverse)
 #total gsl
 GSL_totals <-  read.csv("./data/mf_means.csv") %>%
   select(fam = "Population", trt = "treatment",  rep = "mf", res = "totalGSL") %>%
-  # filter out pop with no replication
+  # filter out pop with no replication - note: write up rationale in methods
   filter(!fam %in% c("MtSH", "YO10")) %>% 
   mutate(fam = as.numeric(as.integer(as.factor(fam)))) %>%
   # make C = 1 , CW = 2 
@@ -68,7 +68,7 @@ str(aliphatic_totals)
 
 #total indole
 indole_totals <-  read.csv("./data/mf_means.csv") %>%
-  select(fam = "Population", trt = "treatment",  rep = "mf", res = "totalindole") %>%
+  select(fam = "Population", trt = "treatment",  rep = "mf", res = "logindoles") %>%
   # filter out pop with no replication
   filter(!fam %in% c("MtSH", "YO10")) %>% 
   mutate(fam = as.numeric(as.integer(as.factor(fam)))) %>%
@@ -104,6 +104,8 @@ maxreps=10000
 # number of families, genotypes, or species in the data set
 numfams= 19     
 
+# good sanity check - make sure this number is right - how many unique 
+
 # Chose one of the following options for what to do if, for a family, Imean, the randomly 
 # generated mean of induced resistance, is negative and less in absolute value than Cmin, 
 # the lowest randomly generated constitutive resistance (which would frequently lead to 
@@ -113,7 +115,7 @@ numfams= 19
 #   gonormal = 0 -> try generating new family mean constitutive and induced
 #       resistances until Imean > -Cmin; this will be slower.
 gonormal=1 
-
+#know this formally - run it one way, run it the other way what are the differences?
 
 # ***********************************************************************************
 
@@ -123,7 +125,7 @@ tcrit=qt(0.975,numfams)           # critical value of t statistic with numfams d
 chi2critlo=qchisq(.975,numfams-1) # critical lower value of chi-square statistic with numfams-1 degrees of freedom     
 chi2critup=qchisq(.025,numfams-1) # critical upper value of chi-square statistic with numfams-1 degrees of freedom   
 
-data = GSL_totals
+data = indole_totals
 attach(data)  # column headings in datafile must be fam, trt, rep, res
 
 Nc=Nd=Cest=Dest=Cc=Cd=matrix(0,numfams,1) # making matrices for each variable (see below for what they are)
@@ -143,7 +145,9 @@ for (f in 1:numfams) {
     Dest[f]=mean(x)           # Dest = population mean resistance in damaged plants
     Cd[f]=sd(x)/Dest[f]       # Cd = population coefficient of variation in damaged plants
     
-}
+} 
+#if loop breaks, can ask R what F it got it
+# can also set f = 1
 
 # Calculate other parameters
 Iest=Dest-Cest      # difference measure of induced resistance
@@ -175,6 +179,9 @@ plot(Cest,Dest,type="p",
 	ylim=c(min(Dest)-.01,max(Dest)+.01)
 )
 lines(xx,xx)
+
+# identify the outliers, take them out, and run the script - run in separate script - are these individuals driving things?
+# what would look weird? does this seem right?
 
 # compute confidence interval for species mean and among-pop variance in constitutive resistance
 Cmeanhat=mean(Cest)   

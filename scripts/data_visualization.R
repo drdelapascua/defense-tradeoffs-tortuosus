@@ -22,6 +22,30 @@ pop_means_long <- read.csv("./data/pop_means_long.csv") %>%
   select(-X)
 head(pop_means_long)
 
+#total gsl
+GSL_totals <-  read.csv("./data/dw.csv") %>%
+  filter(treatment == "C") %>% # filter for the controls
+  select("Population", "mf", "biomass", "totalGSL")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3", "YO10"))
+
+#total aliphatic
+aliphatic_totals <-  read.csv("./data/dw.csv") %>%
+  filter(treatment == "C") %>% # filter for the controls
+  select("Population", "mf", "biomass", "totalaliphatic")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3", "YO10"))
+
+#total indole
+indole_totals <-  read.csv("./data/dw.csv") %>%
+  filter(treatment == "C") %>% # filter for the controls
+  select("Population", "mf", "biomass", "totalindole")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3", "YO10"))
+
+
+####  growth and defense
+
+
+
+
 ### > Stacked bar plot ----
 
 # build big barplot

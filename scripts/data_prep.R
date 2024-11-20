@@ -8,6 +8,12 @@
 library(tidyr)
 library(tidyverse)
 library(dplyr)
+library(cowplot)
+library(ggfortify)
+library(ggrepel)
+library(viridis)
+library(ggbiplot)
+library(export)
 
 ### > load data ----
 
@@ -116,8 +122,6 @@ head(data)
 
 hist(x = data$totalindole) # most have low ampounts of indoles, few have high amount, 
 
-plot(x = data$totalaliphatic, y = data$totalindole)
-
 # total aliphatic
 ali_to_sum <- c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "X3MT_13.6", "MSOO_13.8", "X4MT._15.5")
 ali_sums <- rowSums(data[, ali_to_sum], na.rm = TRUE)
@@ -125,6 +129,18 @@ data$totalaliphatic <- ali_sums # pretty normal, a little skewed left
 head(data)
 
 hist(x = data$totalaliphatic) # more normal
+
+plot(x = data$totalaliphatic, y = data$totalindole)
+
+# Assess distributions
+hist(x = data$totalGSL) # pretty normal, a little skewed left
+hist(x = data$totalindole) # most have low amounts of indoles, few have high amount, 
+hist(x = data$totalaliphatic) # more normal
+
+# log transform indoles
+
+data$logindoles <- log10(data$totalindole)
+hist(x = data$logindoles)
 
 ### > save big data table ----
 
@@ -135,9 +151,9 @@ write.csv(data, "./data/dw.csv")
 
 head(data)
 
-mf_means <-data %>% 
+mf_means <- data %>% 
   # Summarize by maternal family
-  group_by(Population, treatment, mf, Elevation) %>% 
+  group_by(Population, treatment, mf, biomass, Elevation) %>% 
   summarise(
     X3MSO = mean(X3MSO_5.2),
     OHAlkenyl = mean(OH.Alkenyl_6),
@@ -156,13 +172,44 @@ mf_means <-data %>%
     Indole = mean(Indole_18.8),
     totalaliphatic = mean(totalaliphatic),
     totalindole = mean(totalindole),
-    totalGSL = mean(totalGSL)
+    totalGSL = mean(totalGSL),
+    logindoles = mean(logindoles)
   )
 
+mf_means2 <- data %>% 
+  # Summarize by maternal family
+  group_by(Population, treatment, mf) %>% 
+  summarise(
+    X3MSO = mean(X3MSO_5.2),
+    OHAlkenyl = mean(OH.Alkenyl_6),
+    X4MSO = mean(X4MSO_7.1),
+    Allyl = mean(Allyl_7.4),
+    X5MSO = mean(X5MSO_10.2),
+    Butenyl = mean(Butenyl_12.1),
+    X3MT = mean(X3MT_13.6),
+    MSOO = mean(MSOO_13.8),
+    OHI3M = mean(OH.I3M_15.1),
+    X4MT = mean(X4MT._15.5),
+    Flavonol16 = mean(Flavonol_16.1),
+    I3M = mean(I3M_16.7),
+    Flavonol17 = mean(Flavonol_17.5),
+    Flavonol18 = mean(Flavonol_18.5),
+    Indole = mean(Indole_18.8),
+    totalaliphatic = mean(totalaliphatic),
+    totalindole = mean(totalindole),
+    totalGSL = mean(totalGSL),
+    logindoles = mean(logindoles)
+  )
+
+# Use distinct to see if additional grouping variables are present
+distinct_data <- data %>% select(Population, treatment, mf) %>% distinct()
+print(nrow(distinct_data)) 
+print(distinct_data)
+
 # make pop means
-pop_means <- mf_means %>% 
+pop_means <- mf_means2 %>% 
   # Summarize by population
-  group_by(Population, treatment, Elevation) %>% 
+  group_by(Population, treatment) %>% 
   summarise(
     GSL_X3MSO = mean(X3MSO),
     GSL_OHAlkenyl = mean(OHAlkenyl),
@@ -181,15 +228,22 @@ pop_means <- mf_means %>%
     GSL_Indole = mean(Indole),
     GSL_totalaliphatic = mean(totalaliphatic),
     GSL_totalindole = mean(totalindole),
-    GSL_totalGSL = mean(totalGSL)
+    GSL_totalGSL = mean(totalGSL),
+    GSL_logindoles = mean(logindoles)
   )
 
 head(pop_means)
+dim(pop_means)
+
+# Use distinct to see if additional grouping variables are present
+distinct_data <- data %>% select(Population, treatment, mf) %>% distinct()
+print(nrow(distinct_data)) 
+dim(pop_means)
 
 pop_means <- as.data.frame(pop_means) 
 
 # save dfs
-write.csv(mf_means, "./data/mf_means.csv")
+write.csv(mf_means2, "./data/mf_means.csv")
 write.csv(pop_means, "./data/pop_means.csv")
 
 # make long version of means df
@@ -206,14 +260,14 @@ pop_means_long <- as.data.frame(pop_means_long)
 
 # save long version of data
 write.csv(pop_means_long, "./data/pop_means_long.csv")
-head(mf_means)
-mf_means <- as.data.frame(mf_means)
+head(mf_means2)
+mf_means <- as.data.frame(mf_means2)
 
 # > paired means ----
 paired_means = mf_means %>%
   pivot_wider(
     # Specify id columns that shouldn't be spread
-    id_cols = c(Population, mf, Elevation),
+    id_cols = c(Population, mf),
     # Specify where new column names should come from
     names_from = treatment,
     # Specify where values should come from
@@ -328,3 +382,49 @@ paired_means <- left_join(x = c_df, y = cw_df, by = c("mf", "Population"))
 # save df
 write.csv(paired_means, "~/GitHub/defense-tradeoffs-tortuosus/data/paired_means.csv")
 
+### Climate data ----
+
+locs = read_csv("./data/localities.csv")
+
+climate = read_csv("./data/flintbcm_climate_tall_herbarium.csv") %>% 
+  filter(clim_year > 1950, clim_year < 2000) %>% 
+  mutate(pck = abs(pck)) %>% 
+  group_by(id) %>% 
+  dplyr::summarize(cwd = sum(cwd), ppt_mm = sum(ppt_mm), pck = sum(pck), snw = sum(snw), tmin = mean(tmin), tmax = mean(tmax)) %>% 
+  left_join(., locs) %>% 
+  filter(!is.na(cwd), taxon_name %in% c("Streptanthus tortuosus", "Streptanthus tortuosus var. tortuosus"))
+
+table(climate$taxon_name)
+
+climate_for_pc = climate %>% 
+  select(cwd, pck, ppt_mm, snw, tmin, tmax)
+
+summary(climate_for_pc)
+
+pc = prcomp(climate_for_pc, scale = TRUE)
+
+pc_data = data.frame(pc$x)
+
+locs_pc = cbind(climate, pc_data)
+
+# Add identifying information to PCA scores
+pc_data_with_id <- cbind(ID = locs_pc$id, pc_data[, c("PC1", "PC2")])
+
+loadings = data.frame(varnames=rownames(pc$rotation), pc$rotation)
+
+autoplot(pc, loadings = TRUE, loadings.label = TRUE, loadings.colour = "grey", loadings.label.colour = "black")
+ggsave("pca.pdf", width = 10, height = 10)
+
+#make a df with only my pops from the loadings
+my_pops <- c("BH", "CP2", "DPR", "IH", "KC2", "LV1", "LV2", "SQ1", "TM2", "WL1", "WL2", "WL3", "YO10")
+
+my_pc <- pc_data_with_id %>%
+  # Replace "Ben Hur" with "BH" in the "ID" column
+  mutate(ID = ifelse(ID == "Ben Hur", "BH", ID)) %>%
+  # Replace "YOSE10" with "YO10" in the "ID" column
+  mutate(ID = ifelse(ID == "YOSE10", "YO10", ID)) %>%
+  # Replace "TM2 (was TM P)" with "TM2" in the "ID" column
+  mutate(ID = ifelse(ID == "TM2 (was TM P)", "TM2", ID)) %>%
+  filter(ID %in% my_pops) 
+
+write.csv(my_pc, file = "./data/")

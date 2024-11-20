@@ -7,6 +7,7 @@ library(tidyr)
 library(dplyr)
 library(tidyverse)
 library(QstFstComp)
+library(lme4)
 
 ### pull & prepare data ----
 
@@ -71,7 +72,7 @@ fst.dat <- fst.dat %>%
 
 #load trait data
 
-#total gsl
+#total gsl - danielle 11-19-24 test
 GSL_totals <-  read.csv("./data/dw.csv") %>%
   filter(treatment == "C") %>% # filter for the controls
   select("Population", "mf", "totalGSL")%>% 
@@ -86,7 +87,7 @@ aliphatic_totals <-  read.csv("./data/dw.csv") %>%
 #total indole
 indole_totals <-  read.csv("./data/dw.csv") %>%
   filter(treatment == "C") %>% # filter for the controls
-  select("Population", "mf", "totalindole")%>% 
+  select("Population", "mf", "logindoles")%>% 
   filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3", "YO10"))
 
 # replace pops with numbers using key
@@ -139,6 +140,7 @@ aliphatic.dat <- aliphatic.dat %>%
   select(pop, merged_col, totalaliphatics)
 colnames(aliphatic.dat) <- c("pop", "mf", "totalaliphatics")
 
+### Run Qst-Fst Comp ----
 
 # make sure everything is in numerical form
 fst.dat[] <- lapply(fst.dat, as.numeric)
@@ -147,6 +149,27 @@ indole.dat[] <- lapply(indole.dat, as.numeric)
 aliphatic.dat[] <- lapply(aliphatic.dat, as.numeric)
 
 # run qst fst
+fst.dat <- na.omit(fst.dat)
+gsl.dat <- na.omit(gsl.dat)
+any(is.na(fst.dat))
+any(is.na(indole.dat))
+head(fst.dat)
+
+# only keep a subset of pops that are well sampled
+pops_to_exclude <- c("13")
+pops_to_include <- c("2", "6", "7", "8", "9")
+
+gsl.dat.f <- gsl.dat %>% 
+  filter(pop %in% pops_to_include)
+
+fst.dat.f <- fst.dat %>% 
+  filter(pop %in% pops_to_include)
+
+numpops <- length(unique(gsl.dat.f$pop)) 
+numpops <- length(unique(fst.dat.f$pop)) 
+
+
+# troubleshooting
 
 result.gsl <- QstFstComp::QstFstComp(fst.dat = fst.dat, qst.dat = gsl.dat, numpops = 13, breeding.design = "half.sib.dam")
 
@@ -160,6 +183,63 @@ result.gsl.10000sims <- QstFstComp::QstFstComp(fst.dat = fst.dat, qst.dat = gsl.
 
 result.gsl.50000sims <- QstFstComp::QstFstComp(fst.dat = fst.dat, qst.dat = gsl.dat, numpops = 13, nsim = 50000, breeding.design = "half.sib.dam")
 
+# other method to calculate Qst ----
+
+# total GSL
+gsl.dat$pop <- factor(gsl.dat$pop)
+fit = lmer(totalGSL ~ (1|pop), data = gsl.dat)
+summary(fit)
+
+# Get variance components
+var_components = as.data.frame(VarCorr(fit))
+sigma_B = var_components$vcov[1]  # Between-population variance
+sigma_W = attr(VarCorr(fit), "sc")^2  # Within-population variance
+
+# Calculate Qst
+Qst_total = sigma_B / (sigma_B + 2 * sigma_W)
+print(Qst_total)
+
+# indoles
+pops_to_exclude <- c("5", "13")
+indole.dat.filtered <- indole.dat %>% 
+  filter(!pop %in% pops_to_exclude)
+indole.dat$pop <- factor(indole.dat$pop)
+fit = lmer(totalindoles ~ (1|pop), data = indole.dat)
+help('isSingular')
+isSingular(fit) #what does this mean
+summary(fit)
+
+# Get variance components
+var_components = as.data.frame(VarCorr(fit))
+sigma_B = var_components$vcov[1]  # Between-population variance
+sigma_W = attr(VarCorr(fit), "sc")^2  # Within-population variance
+
+# Calculate Qst
+Qst_indole = sigma_B / (sigma_B + 2 * sigma_W)
+print(Qst_indole)
+
+# aliphatics
+
+aliphatic.dat$pop <- factor(aliphatic.dat$pop)
+fit = lmer(totalaliphatics ~ (1|pop), data = aliphatic.dat)
+summary(fit)
+
+# Get variance components
+var_components = as.data.frame(VarCorr(fit))
+sigma_B = var_components$vcov[1]  # Between-population variance
+sigma_W = attr(VarCorr(fit), "sc")^2  # Within-population variance
+
+# Calculate Qst
+Qst_aliphatic = sigma_B / (sigma_B + 2 * sigma_W)
+print(Qst_aliphatic)
+
+
+# Calculate confidence interval ? bootstrapping
+# shuffle pop levels, do it 100 or 1000 times, 2-tailed, test where does this Qst fall
+# Calculate pairwise estimates for all pairwise Qst, confidence interval for distribution 
+# Calculate pairwise Fst and subtract them all - would be good to recalculate with my 13 pops
+
+
 
 ### calculate Qst ----
 
@@ -170,6 +250,8 @@ library(QstFstComp)
 
 
 
+###############################################################
+# PAIRWISE COMPARISONS ----
 ###############################################################
 
 # Calculate mean and variance within each population

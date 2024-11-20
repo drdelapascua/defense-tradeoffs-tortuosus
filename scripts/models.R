@@ -4,11 +4,6 @@
 
 ### Linear Mixed Models ----
 
-install.packages("Matrix")
-install.packages("lme4")
-options(oo)
-install.packages("emmeans")
-
 #libraries
 library(lme4)
 library(nlme)
@@ -16,11 +11,14 @@ library(Matrix)
 library(emmeans)
 library(dplyr)
 library(tidyr)
+library(ggplot2)
 
 #pull data
 data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dw.csv")
 
 head(data)
+
+means <- read.csv("./data/mf_means.csv")
 
 # Question 1 ----
 
@@ -67,7 +65,6 @@ summary(m3)
 #error message: boundary (singular) fit: see help('isSingular')
 
 # Compute EMMs
-<<<<<<< HEAD
 emm <- emmeans(m1, c("treatment", "Elevation"))
 # Perform post-hoc tests for interactions
 emm_pairs_specific <- pairs(emm, by = c("treatment", "Elevation"))
@@ -78,7 +75,7 @@ print(emm_pairs_specific)
 
 
 # Q2 - growth-defense trade-offs & association with environment
-=======
+
 emtrends <- emtrends(TotalGSL_q1, ~1, var = "totalGSL_C")
 emtrends # slope below 1, not different than 0
 
@@ -182,20 +179,45 @@ ggplot(data = paired_means, aes(x = I3M_C, y = I3M_CW, color = Elevation, label 
 # Question 2 ----
 
 # growth-defense trade-offs & association with environment
->>>>>>> parent of 5d35ab4 (update)
 
 #Fixed effects: growth x elevation
 #Random effects: population, rack
 #Statistical test - report slope of the regression line - r, r2, and p value
 #If hypothesis is supported, positive slope across populations, populations that have higher biomass will have higher defense investment. The effect size of the slop should be bigger than 0.
 
-<<<<<<< HEAD
 #OH-I3M
-=======
-# OH-I3M
->>>>>>> parent of 5d35ab4 (update)
-x1 <- lmer( OH.I3M_15.1 ~ biomass*Elevation + (1|Population), data = data, na.action = na.exclude)
+
+summary(means)
+
+# total GSLs
+ggplot(data = means, aes(x = biomass, y = totalGSL, color = Elevation, label + Elevation)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")
+
+# indole GSLs
+ggplot(data = means, aes(x = biomass, y = totalindole, color = Elevation, label + Elevation)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")
+
+# aliphatic GSLs
+ggplot(data = means, aes(x = biomass, y = totalaliphatic, color = Elevation, label + Elevation)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")
+
+x1 <- lm(totalGSL ~ biomass , data = means, na.action = na.exclude)
 summary(x1)
+
+x2  <- lm(totalindole ~ biomass , data = means, na.action = na.exclude)
+summary(x2)
+
+x3 <- lm(totalaliphatic ~ biomass , data = means, na.action = na.exclude)
+summary(x3)
 
 anova_result1 <- anova(x1)
 print(anova_result1)
