@@ -137,10 +137,19 @@ hist(x = data$totalGSL) # pretty normal, a little skewed left
 hist(x = data$totalindole) # most have low amounts of indoles, few have high amount, 
 hist(x = data$totalaliphatic) # more normal
 
-# log transform indoles
+# log transform all
+
+data$logGSL <- log10(data$totalGSL)
 
 data$logindoles <- log10(data$totalindole)
+
+data$logaliphatics <- log10(data$totalaliphatic)
+
+data$logindoles <- log10(data$totalindole)
+
+hist(x = data$logGSL)
 hist(x = data$logindoles)
+hist(x = data$logaliphatics)
 
 ### > save big data table ----
 
@@ -152,31 +161,6 @@ write.csv(data, "./data/dw.csv")
 head(data)
 
 mf_means <- data %>% 
-  # Summarize by maternal family
-  group_by(Population, treatment, mf, biomass, Elevation) %>% 
-  summarise(
-    X3MSO = mean(X3MSO_5.2),
-    OHAlkenyl = mean(OH.Alkenyl_6),
-    X4MSO = mean(X4MSO_7.1),
-    Allyl = mean(Allyl_7.4),
-    X5MSO = mean(X5MSO_10.2),
-    Butenyl = mean(Butenyl_12.1),
-    X3MT = mean(X3MT_13.6),
-    MSOO = mean(MSOO_13.8),
-    OHI3M = mean(OH.I3M_15.1),
-    X4MT = mean(X4MT._15.5),
-    Flavonol16 = mean(Flavonol_16.1),
-    I3M = mean(I3M_16.7),
-    Flavonol17 = mean(Flavonol_17.5),
-    Flavonol18 = mean(Flavonol_18.5),
-    Indole = mean(Indole_18.8),
-    totalaliphatic = mean(totalaliphatic),
-    totalindole = mean(totalindole),
-    totalGSL = mean(totalGSL),
-    logindoles = mean(logindoles)
-  )
-
-mf_means2 <- data %>% 
   # Summarize by maternal family
   group_by(Population, treatment, mf) %>% 
   summarise(
@@ -198,7 +182,9 @@ mf_means2 <- data %>%
     totalaliphatic = mean(totalaliphatic),
     totalindole = mean(totalindole),
     totalGSL = mean(totalGSL),
-    logindoles = mean(logindoles)
+    logGSL = mean(logGSL),
+    logindoles = mean(logindoles),
+    logaliphatics = mean(logaliphatics)
   )
 
 # Use distinct to see if additional grouping variables are present
@@ -207,7 +193,7 @@ print(nrow(distinct_data))
 print(distinct_data)
 
 # make pop means
-pop_means <- mf_means2 %>% 
+pop_means <- mf_means %>% 
   # Summarize by population
   group_by(Population, treatment) %>% 
   summarise(
@@ -229,7 +215,8 @@ pop_means <- mf_means2 %>%
     GSL_totalaliphatic = mean(totalaliphatic),
     GSL_totalindole = mean(totalindole),
     GSL_totalGSL = mean(totalGSL),
-    GSL_logindoles = mean(logindoles)
+    GSL_logindoles = mean(logindoles),
+    GSL_logaliphatics = mean(logaliphatics)
   )
 
 head(pop_means)
@@ -243,7 +230,7 @@ dim(pop_means)
 pop_means <- as.data.frame(pop_means) 
 
 # save dfs
-write.csv(mf_means2, "./data/mf_means.csv")
+write.csv(mf_means, "./data/mf_means.csv")
 write.csv(pop_means, "./data/pop_means.csv")
 
 # make long version of means df
@@ -260,143 +247,53 @@ pop_means_long <- as.data.frame(pop_means_long)
 
 # save long version of data
 write.csv(pop_means_long, "./data/pop_means_long.csv")
-head(mf_means2)
-mf_means <- as.data.frame(mf_means2)
-
-# > paired means ----
-paired_means = mf_means %>%
-  pivot_wider(
-    # Specify id columns that shouldn't be spread
-    id_cols = c(Population, mf),
-    # Specify where new column names should come from
-    names_from = treatment,
-    # Specify where values should come from
-    values_from = c(X3MSO, OHAlkenyl, X4MSO, Allyl, X5MSO, Butenyl, X3MT, MSOO, OHI3M, X4MT, I3M, Indole, totalaliphatic, totalindole, totalGSL))%>%
-  na.omit()
-
-colnames(mf_means)
-head(paired_means)
-paired_means <- as.data.frame(paired_means)
-#save paired means
-
-write.csv(paired_means, "./data/paired_means.csv")
-
-
-########## OLD CODE - Aggregating means (do in tidy way if we need means in the future)
-
-### manipulate data so we have a df with mf means for CW and C treated plants
-#JRG: why load this data here?  Is this left over from a previous version?  Why not keep working with the data you have been using above?
-#dl <- read.csv("./data/dl-induced.csv")
-#head(dl)
-#dl <- dl[11:35]
-
-# aggregate across mfs and by population
-# across mfs
-x3MSO_mf <- aggregate(X3MSO_5.2 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-OHAlkenyl_mf <- aggregate(OH.Alkenyl_6 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-x4MSO_mf <- aggregate(X4MSO_7.1 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-Allyl_mf <- aggregate(Allyl_7.4 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-x5MSO_mf <- aggregate(X5MSO_10.2 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-Butenyl_mf <- aggregate(Butenyl_12.1 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-x3MT_mf <- aggregate(X3MT_13.6 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-MSOO_mf <- aggregate(MSOO_13.8 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-OHI3M_mf <- aggregate(OH.I3M_15.1 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-Flavonol16_mf <- aggregate(Flavonol_16.1 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-x4MT_mf <- aggregate(X4MT._15.5 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-I3M_mf <- aggregate(I3M_16.7 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-Flavonol17_mf <- aggregate(Flavonol_17.5 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-Flavonol18_mf <- aggregate(Flavonol_18.5 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-Indole_mf <- aggregate(Indole_18.8 ~ mf + Population + treatment, data = dl, FUN = function(x) mean(x, na.rm = TRUE))
-
-# join aggregated mf dfs together Allyl_mf Butenyl_mf
-mf_means <- full_join(x = Butenyl_mf, y = Allyl_mf, by = c("mf", "Population", "treatment"))
-mf_means <- full_join(x = mf_means, y = x4MSO_mf, by = c("mf", "Population", "treatment"))
-mf_means <- full_join(x = mf_means, y = OHAlkenyl_mf, by = c("mf", "Population", "treatment"))
-mf_means <- full_join(x = mf_means, y = x5MSO_mf, by = c("mf", "Population", "treatment"))
-mf_means <- full_join(x = mf_means, y = x3MSO_mf, by = c("mf", "Population", "treatment"))
-mf_means <- full_join(x = mf_means, y = x3MT_mf, by = c("mf", "Population", "treatment"))
-mf_means <- full_join(x = mf_means, y = MSOO_mf, by = c("mf", "Population", "treatment"))
-mf_means <- full_join(x = mf_means, y = OHI3M_mf, by = c("mf", "Population", "treatment"))
-mf_means <- full_join(x = mf_means, y = Flavonol16_mf, by = c("mf", "Population", "treatment"))
-mf_means <- full_join(x = mf_means, y = x4MT_mf, by = c("mf", "Population", "treatment"))
-mf_means <- full_join(x = mf_means, y = I3M_mf, by = c("mf", "Population", "treatment"))
-mf_means <- full_join(x = mf_means, y = Flavonol17_mf, by = c("mf", "Population", "treatment"))
-mf_means <- full_join(x = mf_means, y = Flavonol18_mf, by = c("mf", "Population", "treatment"))
-mf_means <- full_join(x = mf_means, y = Indole_mf, by = c("mf", "Population", "treatment"))
-
-# across pops
-x3MSO_pop <- aggregate(X3MSO_5.2 ~ Population + treatment, data = x3MSO_mf, FUN = function(x) mean(x, na.rm = TRUE))
-OHAlkenyl_pop <- aggregate(OH.Alkenyl_6 ~ Population + treatment, data = OHAlkenyl_mf, FUN = function(x) mean(x, na.rm = TRUE))
-x4MSO_pop <- aggregate(X4MSO_7.1 ~ Population + treatment, data = x4MSO_mf, FUN = function(x) mean(x, na.rm = TRUE))
-Allyl_pop <- aggregate(Allyl_7.4 ~ Population + treatment, data = Allyl_mf, FUN = function(x) mean(x, na.rm = TRUE))
-x5MSO_pop <- aggregate(X5MSO_10.2 ~ Population + treatment, data = x5MSO_mf, FUN = function(x) mean(x, na.rm = TRUE))
-Butenyl_pop<- aggregate(Butenyl_12.1 ~ Population + treatment, data = Butenyl_mf, FUN = function(x) mean(x, na.rm = TRUE))
-x3MT_pop <- aggregate(X3MT_13.6 ~ Population + treatment, data = x3MT_mf, FUN = function(x) mean(x, na.rm = TRUE))
-MSOO_pop <- aggregate(MSOO_13.8 ~ Population + treatment, data = MSOO_mf, FUN = function(x) mean(x, na.rm = TRUE))
-OHI3M_pop<- aggregate(OH.I3M_15.1 ~ Population + treatment, data = OHI3M_mf, FUN = function(x) mean(x, na.rm = TRUE))
-Flavonol16_pop <- aggregate(Flavonol_16.1 ~ Population + treatment, data = Flavonol16_mf, FUN = function(x) mean(x, na.rm = TRUE))
-x4MT_pop <- aggregate(X4MT._15.5 ~ Population + treatment, data = x4MT_mf, FUN = function(x) mean(x, na.rm = TRUE))
-I3M_pop <- aggregate(I3M_16.7 ~ Population + treatment, data = I3M_mf, FUN = function(x) mean(x, na.rm = TRUE))
-Flavonol17_pop<- aggregate(Flavonol_17.5 ~ Population + treatment, data = Flavonol17_mf, FUN = function(x) mean(x, na.rm = TRUE))
-Flavonol18_pop <- aggregate(Flavonol_18.5 ~ Population + treatment, data = Flavonol18_mf, FUN = function(x) mean(x, na.rm = TRUE))
-Indole_pop <- aggregate(Indole_18.8 ~ Population + treatment, data = Indole_mf, FUN = function(x) mean(x, na.rm = TRUE))
-
-# merge population means
-
-# join aggregated mf dfs together x3MSO_pop
-pop_means <- full_join(x = Allyl_pop, y = OHAlkenyl_pop, by = c("Population", "treatment"))
-pop_means <- full_join(x = pop_means, y = x4MSO_pop, by = c("Population", "treatment"))
-pop_means <- full_join(x = pop_means, y = x3MSO_pop, by = c("Population", "treatment"))
-pop_means <- full_join(x = pop_means, y = x5MSO_pop, by = c("Population", "treatment"))
-pop_means <- full_join(x = pop_means, y = Butenyl_pop, by = c("Population", "treatment"))
-pop_means <- full_join(x = pop_means, y = x3MT_pop, by = c("Population", "treatment"))
-pop_means <- full_join(x = pop_means, y = MSOO_pop, by = c("Population", "treatment"))
-pop_means <- full_join(x = pop_means, y = OHI3M_pop, by = c("Population", "treatment"))
-pop_means <- full_join(x = pop_means, y = Flavonol16_pop, by = c("Population", "treatment"))
-pop_means <- full_join(x = pop_means, y = x4MT_pop, by = c("Population", "treatment"))
-pop_means <- full_join(x = pop_means, y = I3M_pop, by = c("Population", "treatment"))
-pop_means <- full_join(x = pop_means, y = Flavonol17_pop, by = c("Population", "treatment"))
-pop_means <- full_join(x = pop_means, y = Flavonol18_pop, by = c("Population", "treatment"))
-pop_means <- full_join(x = pop_means, y = Indole_pop, by = c("Population", "treatment"))
-
-# separate df into two dfs by trt
-control_df <- subset(d_induced, treatment == 'C')
-cw_df <- subset(d_induced, treatment == 'CW')
-
-# manually clean col names
-write.csv(c_df, "~/GitHub/defense-tradeoffs-tortuosus/data/c_df.csv")
-write.csv(cw_df, "~/GitHub/defense-tradeoffs-tortuosus/data/cw_df.csv")
-write.csv(pop_means, "~/GitHub/defense-tradeoffs-tortuosus/data/pop_means.csv")
-write.csv(mf_means, "~/GitHub/defense-tradeoffs-tortuosus/data/mf_means.csv")
-
-# 
-c_df <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/c_df.csv")
-cw_df <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/cw_df.csv")
-
-head(c_df)
-
-
-# merge dfs
-paired_means <- left_join(x = c_df, y = cw_df, by = c("mf", "Population"))
-
-# save df
-write.csv(paired_means, "~/GitHub/defense-tradeoffs-tortuosus/data/paired_means.csv")
 
 ### Climate data ----
 
-locs = read_csv("./data/localities.csv")
+all_locs = read.csv("./data/localities.csv") %>%
+  mutate(id = if_else(id == "Ben Hur", "BH", id)) %>%
+  mutate(id = if_else(id == "TM2 (was TM P)", "TM2", id))
+#  select(-(collection_date:locality)) %>%
+#  select(-pop_gen)
+
+head(all_locs)
+
+my_locs = read.csv("./data/elevation.csv") %>%
+  select(id = "Population", latitude = "Lat", longitude = "Long", elevation = "Elevation")
+
+my_locs$taxon_name <- "Streptanthus tortuosus"
+
+head(my_locs)
+summary(my_locs)
 
 climate = read_csv("./data/flintbcm_climate_tall_herbarium.csv") %>% 
   filter(clim_year > 1950, clim_year < 2000) %>% 
   mutate(pck = abs(pck)) %>% 
   group_by(id) %>% 
   dplyr::summarize(cwd = sum(cwd), ppt_mm = sum(ppt_mm), pck = sum(pck), snw = sum(snw), tmin = mean(tmin), tmax = mean(tmax)) %>% 
-  left_join(., locs) %>% 
+  mutate(id = if_else(id == "Ben Hur", "BH", id)) %>%
+  mutate(id = if_else(id == "TM2 (was TM P)", "TM2", id)) %>%
+  left_join(., all_locs) %>% 
   filter(!is.na(cwd), taxon_name %in% c("Streptanthus tortuosus", "Streptanthus tortuosus var. tortuosus"))
 
-table(climate$taxon_name)
+my_climate = read_csv("./data/flintbcm_climate_tall_herbarium.csv") %>% 
+  filter(clim_year > 1950, clim_year < 2000) %>% 
+  mutate(pck = abs(pck)) %>% 
+  group_by(id) %>% 
+  dplyr::summarize(cwd = sum(cwd), ppt_mm = sum(ppt_mm), pck = sum(pck), snw = sum(snw), tmin = mean(tmin), tmax = mean(tmax)) %>% 
+  mutate(id = if_else(id == "Ben Hur", "BH", id)) %>%
+  mutate(id = if_else(id == "TM2 (was TM P)", "TM2", id)) %>%
+  mutate(id = if_else(id == "UCD161863", "MtSH", id)) %>%
+  mutate(id = if_else(id == "UCD164328", "CALO", id)) %>%
+  mutate(id = if_else(id == "RSA795268", "LC", id)) %>%
+  mutate(id = if_else(id == "RSA0085001", "TFC", id)) %>%
+  mutate(id = if_else(id == "CHSC98313", "RB", id)) %>%
+  full_join(., my_locs) %>% 
+  filter(!is.na(cwd), taxon_name %in% c("Streptanthus tortuosus", "Streptanthus tortuosus var. tortuosus"))
 
-climate_for_pc = climate %>% 
+# get rid of the 2 pops that were excluded form experimment (MtSH and ) 
+
+climate_for_pc = my_climate %>% 
   select(cwd, pck, ppt_mm, snw, tmin, tmax)
 
 summary(climate_for_pc)
@@ -405,7 +302,7 @@ pc = prcomp(climate_for_pc, scale = TRUE)
 
 pc_data = data.frame(pc$x)
 
-locs_pc = cbind(climate, pc_data)
+locs_pc = cbind(my_climate, pc_data)
 
 # Add identifying information to PCA scores
 pc_data_with_id <- cbind(ID = locs_pc$id, pc_data[, c("PC1", "PC2")])
@@ -413,18 +310,72 @@ pc_data_with_id <- cbind(ID = locs_pc$id, pc_data[, c("PC1", "PC2")])
 loadings = data.frame(varnames=rownames(pc$rotation), pc$rotation)
 
 autoplot(pc, loadings = TRUE, loadings.label = TRUE, loadings.colour = "grey", loadings.label.colour = "black")
-ggsave("pca.pdf", width = 10, height = 10)
 
-#make a df with only my pops from the loadings
-my_pops <- c("BH", "CP2", "DPR", "IH", "KC2", "LV1", "LV2", "SQ1", "TM2", "WL1", "WL2", "WL3", "YO10")
+# Extract PCA scores for the first two principal components
+pca_scores <- as.data.frame(pc$x[, 1:2])
 
-my_pc <- pc_data_with_id %>%
-  # Replace "Ben Hur" with "BH" in the "ID" column
-  mutate(ID = ifelse(ID == "Ben Hur", "BH", ID)) %>%
-  # Replace "YOSE10" with "YO10" in the "ID" column
-  mutate(ID = ifelse(ID == "YOSE10", "YO10", ID)) %>%
-  # Replace "TM2 (was TM P)" with "TM2" in the "ID" column
-  mutate(ID = ifelse(ID == "TM2 (was TM P)", "TM2", ID)) %>%
-  filter(ID %in% my_pops) 
+# Add sample names (row names) to the PCA scores
+pca_scores$names <- my_climate$id
 
-write.csv(my_pc, file = "./data/")
+# Extract PCA loadings (variable contributions)
+pca_loadings <- as.data.frame(pc$rotation[, 1:2])
+colnames(pca_loadings) <- c("PC1", "PC2")
+pca_loadings$variable <- rownames(pca_loadings)  # Add variable names
+
+scaling_factor <- 3  # Adjust this value as needed
+pca_loadings <- pca_loadings %>%
+  mutate(PC1 = PC1 * scaling_factor, PC2 = PC2 * scaling_factor)
+
+# Plot PCA
+ggplot() +
+  # Plot sample points
+  geom_point(data = pca_scores, aes(x = PC1, y = PC2), color = "blue", size = 3) +
+  # Add labels for sample points
+  geom_text(data = pca_scores, aes(x = PC1, y = PC2, label = names), vjust = -0.5, size = 3) +
+  # Add loading vectors as arrows
+  geom_segment(data = pca_loadings, aes(x = 0, y = 0, xend = PC1, yend = PC2), 
+               arrow = arrow(length = unit(0.2, "cm")), color = "red") +
+  # Add labels for loadings
+  geom_text(data = pca_loadings, aes(x = PC1, y = PC2, label = variable), 
+            color = "red", vjust = -0.5, size = 3) +
+  # Add axis labels and title
+  labs(title = "PCA Plot with Loadings", x = "PC1", y = "PC2") +
+  theme_minimal()
+
+# Add PC1 and PC2 values to the big dataframe
+pca_scores_df <- pca_scores %>%
+  rename(Population = names)
+
+my_climate_df <- my_climate %>%
+  rename(Population = id)
+
+my_climate_df2 <- my_climate_df %>%
+  left_join(pca_scores_df, by = "Population") %>%
+  select(-taxon_name)
+
+# save big climate df 
+write.csv(my_climate_df2, file = "./data/climate_PC_data.csv")
+
+# merge climate data into the big data frame
+data_with_clim <- data %>% 
+  left_join(my_climate_df2, by = "Population") 
+
+# merge climate data with the mf means
+mf_means_with_clim <- mf_means %>% 
+  left_join(my_climate_df2, by = "Population") 
+
+# merge climate data with the pop means
+pop_means_with_clim <- pop_means %>%
+  left_join(my_climate_df2, by = "Population") 
+  
+# save big df
+write.csv(data_with_clim, file = "./data/dw_with_clim.csv")
+
+# save mf means
+write.csv(mf_means_with_clim, file = "./data/mf_means_with_clim.csv")
+
+# save pops means
+write.csv(pop_means_with_clim, file = "./data/pop_means_with_clim.csv")
+
+controls <- data %>%
+  filter(treatment == "C")

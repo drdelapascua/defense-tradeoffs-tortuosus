@@ -20,6 +20,91 @@ head(data)
 
 means <- read.csv("./data/mf_means.csv")
 
+# Climate & totals ----
+
+mf_means_with_climate <- read.csv("./data/mf_means_with_clim.csv") %>%
+  select(-X) %>%
+  filter(treatment == "C") %>%
+  filter(Population != "MtSH") %>%
+  filter(Population != "YO10")
+
+# simple model with pop as random effect
+
+# Total GSLs
+test_m1 <- lmer(logGSL ~ PC1 + (1|Population), data = mf_means_with_climate)
+test_m1_nore <- lm(logGSL ~ PC1, data = mf_means_with_climate)
+summary(test_m1)
+summary(test_m1_nore)
+
+ggplot(data = mf_means_with_climate, aes(x = PC1, y = logGSL, color = elevation, label + elevation)) + 
+  geom_point(size = 3) + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")
+
+# Total GSLs & PC2
+test_m6 <- lmer(logGSL ~ PC2 + (1|Population), data = mf_means_with_climate)
+test_m6_nore <- lm(logGSL ~ PC2, data = mf_means_with_climate)
+summary(test_m6)
+summary(test_m6_nore)
+
+ggplot(data = mf_means_with_climate, aes(x = PC2, y = logGSL, color = elevation, label + elevation)) + 
+  geom_point(size = 3) + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")
+
+# Total indoles & PC 1
+# drop inf
+mf_means_with_climate_infdrop <- mf_means_with_climate %>%
+  filter_all(all_vars(. != -Inf))
+test_m2 <- lmer(logindoles ~ PC1 + (1|Population), data = mf_means_with_climate_infdrop)
+test_m2_nore <- lm(logindoles ~ PC1, data = mf_means_with_climate_infdrop)
+summary(test_m2)
+summary(test_m2_nore)
+
+ggplot(data = mf_means_with_climate_infdrop, aes(x = PC1, y = logindoles, color = elevation, label + elevation)) + 
+  geom_point(size = 3) + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")
+
+# Total indoles & PC 2
+test_m3 <- lmer(logindoles ~ PC2 + (1|Population), data = mf_means_with_climate_infdrop)
+test_m3_nore <- lm(logindoles ~ PC2, data = mf_means_with_climate_infdrop)
+summary(test_m3)
+summary(test_m3_nore)
+
+ggplot(data = mf_means_with_climate_infdrop, aes(x = PC2, y = logindoles, color = elevation, label + elevation)) + 
+  geom_point(size = 3) + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")
+
+# Total log aliphatics
+test_m4 <- lmer(logaliphatics ~ PC1 + (1|Population), data = mf_means_with_climate)
+test_m4_nore <- lm(logaliphatics ~ PC1, data = mf_means_with_climate)
+summary(test_m4)
+summary(test_m4_nore)
+
+ggplot(data = mf_means_with_climate, aes(x = PC1, y = logaliphatics, color = elevation, label + elevation)) + 
+  geom_point(size = 3) + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")
+
+# Total log aliphatics & PC2
+test_m5 <- lmer(logaliphatics ~ PC2 + (1|Population), data = mf_means_with_climate)
+test_m5_nore <- lm(logaliphatics ~ PC2, data = mf_means_with_climate)
+summary(test_m5)
+summary(test_m5_nore)
+
+ggplot(data = mf_means_with_climate, aes(x = PC2, y = logaliphatics, color = elevation, label + elevation)) + 
+  geom_point(size = 3) + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")
+
 # Question 1 ----
 
 #i want to know whether populations that have high underlying defenses invest more or less in induced defenses

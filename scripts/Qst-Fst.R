@@ -8,11 +8,184 @@ library(dplyr)
 library(tidyverse)
 library(QstFstComp)
 library(lme4)
+library(boot)
 
-### pull & prepare data ----
+# Pst code ----
 
+library(lme4)
 
-### Genetic data (Fst)
+# load data
+GSL_totals <-  read.csv("./data/mf_means.csv") %>%
+  filter(treatment == "C") %>% # filter for the controls
+  select("Population", "mf", "logGSL")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+# Fit the random effects model
+
+# log total GSLs
+data = GSL_totals
+hist(data$logGSL)
+
+model <- lmer(logGSL ~ (1 | Population), data = data)
+
+# Extract variance components
+variance_components <- as.data.frame(VarCorr(model))
+V_B <- variance_components$vcov[1]  # Between-population variance
+V_W <- variance_components$vcov[2]  # Within-population variance
+
+# Calculate Pst
+Pst <- V_B / (V_B + 2 * V_W)
+print(Pst)
+
+# Define a function to calculate Pst from a random effects model
+calc_pst_lmer <- function(data, indices) {
+  resampled_data <- data[indices, ]
+  model <- lmer(logGSL ~ (1 | Population), data = resampled_data)
+  variance_components <- as.data.frame(VarCorr(model))
+  V_B <- variance_components$vcov[1]
+  V_W <- variance_components$vcov[2]
+  Pst <- V_B / (V_B + 2 * V_W)
+  return(Pst)
+}
+
+# Perform bootstrapping
+set.seed(100)  # For reproducibility
+boot_results <- boot(data, statistic = calc_pst_lmer, R = 1000)
+
+# Calculate mean and standard error of bootstrap results
+boot_mean <- mean(boot_results$t)  # Mean of bootstrap replicates
+boot_se <- sd(boot_results$t)      # Standard error
+
+# Calculate critical value for 95% CI
+z_critical <- qnorm(0.975)  # 1.96 for 95% confidence
+
+# Calculate normal approximation confidence interval
+ci_lower <- boot_mean - z_critical * boot_se
+ci_upper <- boot_mean + z_critical * boot_se
+
+# Print results
+cat("95% CI (Normal Approximation):", ci_lower, "-", ci_upper, "\n")
+
+hist(boot_results$t, main = "Bootstrap Distribution", xlab = "Pst")
+
+#### log total indoles ####
+
+#total indole
+indole_totals <-  read.csv("./data/mf_means.csv") %>%
+  filter(treatment == "C") %>% # filter for the controls
+  select("Population", "mf", "logindoles")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+data = indole_totals %>%
+  filter(logindoles != -Inf)
+
+is.finite(data$logindoles)
+
+hist(data$logindoles)
+
+model <- lmer(logindoles ~ (1 | Population), data = data)
+
+# Extract variance components
+variance_components <- as.data.frame(VarCorr(model))
+V_B <- variance_components$vcov[1]  # Between-population variance
+V_W <- variance_components$vcov[2]  # Within-population variance
+
+# Calculate Pst
+Pst <- V_B / (V_B + 2 * V_W)
+print(Pst)
+
+# Define a function to calculate Pst from a random effects model
+calc_pst_lmer <- function(data, indices) {
+  resampled_data <- data[indices, ]
+  model <- lmer(logindoles ~ (1 | Population), data = resampled_data)
+  variance_components <- as.data.frame(VarCorr(model))
+  V_B <- variance_components$vcov[1]
+  V_W <- variance_components$vcov[2]
+  Pst <- V_B / (V_B + 2 * V_W)
+  return(Pst)
+}
+
+# Perform bootstrapping
+set.seed(100)  # For reproducibility
+boot_results <- boot(data, statistic = calc_pst_lmer, R = 1000)
+
+# Calculate mean and standard error of bootstrap results
+boot_mean <- mean(boot_results$t)  # Mean of bootstrap replicates
+boot_se <- sd(boot_results$t)      # Standard error
+
+# Calculate critical value for 95% CI
+z_critical <- qnorm(0.975)  # 1.96 for 95% confidence
+
+# Calculate normal approximation confidence interval
+ci_lower <- boot_mean - z_critical * boot_se
+ci_upper <- boot_mean + z_critical * boot_se
+
+# Print results
+cat("95% CI (Normal Approximation):", ci_lower, "-", ci_upper, "\n")
+
+hist(boot_results$t, main = "Bootstrap Distribution", xlab = "Pst")
+
+#### aliphatics ####
+
+#total aliphatic
+aliphatic_totals <-  read.csv("./data/mf_means.csv") %>%
+  filter(treatment == "C") %>% # filter for the controls
+  select("Population", "mf", "logaliphatics")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+# Fit the random effects model
+
+# log total GSLs
+data = aliphatic_totals
+hist(data$logaliphatics)
+
+model <- lmer(logaliphatics ~ (1 | Population), data = data)
+
+# Extract variance components
+variance_components <- as.data.frame(VarCorr(model))
+V_B <- variance_components$vcov[1]  # Between-population variance
+V_W <- variance_components$vcov[2]  # Within-population variance
+
+# Calculate Pst
+Pst <- V_B / (V_B + 2 * V_W)
+print(Pst)
+
+# Define a function to calculate Pst from a random effects model
+calc_pst_lmer <- function(data, indices) {
+  resampled_data <- data[indices, ]
+  model <- lmer(logaliphatics ~ (1 | Population), data = resampled_data)
+  variance_components <- as.data.frame(VarCorr(model))
+  V_B <- variance_components$vcov[1]
+  V_W <- variance_components$vcov[2]
+  Pst <- V_B / (V_B + 2 * V_W)
+  return(Pst)
+}
+
+# Perform bootstrapping
+set.seed(100)  # For reproducibility
+boot_results <- boot(data, statistic = calc_pst_lmer, R = 1000)
+
+# Calculate mean and standard error of bootstrap results
+boot_mean <- mean(boot_results$t)  # Mean of bootstrap replicates
+boot_se <- sd(boot_results$t)      # Standard error
+
+# Calculate critical value for 95% CI
+z_critical <- qnorm(0.975)  # 1.96 for 95% confidence
+
+# Calculate normal approximation confidence interval
+ci_lower <- boot_mean - z_critical * boot_se
+ci_upper <- boot_mean + z_critical * boot_se
+
+# Print results
+cat("95% CI (Normal Approximation):", ci_lower, "-", ci_upper, "\n")
+
+hist(boot_results$t, main = "Bootstrap Distribution", xlab = "Pst")
+
+### Qst Fst Comp Package ----
+
+#### pull & prepare data ----
+
+### Load Genetic data (Fst)
 
 # Load the CSV file
 csv_data <- read.csv("data/ind_ids_reassigned.csv") %>%
@@ -68,7 +241,7 @@ fst.dat <- fst.dat %>%
   select(mf, everything()) %>%
   select(pop, everything())
 
-### Trait Data (Qst)
+#### Trait Data (Qst) ----
 
 #load trait data
 
@@ -140,7 +313,7 @@ aliphatic.dat <- aliphatic.dat %>%
   select(pop, merged_col, totalaliphatics)
 colnames(aliphatic.dat) <- c("pop", "mf", "totalaliphatics")
 
-### Run Qst-Fst Comp ----
+#### Run Qst-Fst Comp ----
 
 # make sure everything is in numerical form
 fst.dat[] <- lapply(fst.dat, as.numeric)
@@ -183,11 +356,19 @@ result.gsl.10000sims <- QstFstComp::QstFstComp(fst.dat = fst.dat, qst.dat = gsl.
 
 result.gsl.50000sims <- QstFstComp::QstFstComp(fst.dat = fst.dat, qst.dat = gsl.dat, numpops = 13, nsim = 50000, breeding.design = "half.sib.dam")
 
-# other method to calculate Qst ----
+result.gsl$
+
+qst.MS <- MeanSq.unbalanced.dam(qst.dat)
+
+
+
+
+# Rishav and my work below
 
 # total GSL
+
 gsl.dat$pop <- factor(gsl.dat$pop)
-fit = lmer(totalGSL ~ (1|pop), data = gsl.dat)
+fit = lmer(totalGSL ~ 1 + (1|pop) , data = gsl.dat)
 summary(fit)
 
 # Get variance components
@@ -241,18 +422,7 @@ print(Qst_aliphatic)
 
 
 
-### calculate Qst ----
-
-# trying package
-library(devtools)
-install_github("kjgilbert/QstFstComp")
-library(QstFstComp)
-
-
-
-###############################################################
-# PAIRWISE COMPARISONS ----
-###############################################################
+### PAIRWISE COMPARISONS ----
 
 # Calculate mean and variance within each population
 indole_population_stats <- mf_means %>%
@@ -300,21 +470,3 @@ left_join(indole_pairwise_qst, fst, by = c("Pop1", "Pop2"))
 # > how is this method different from pop-level fst? Literature says pairwise is ok, but having trouble finding examples of code
 # >> this package may help? https://github.com/kjgilbert/QstFstComp 
 # > driftsel - this package can do qpc type analysis on unbalanced half-sib design on different sets of individuals (genotype vs phenotype)
-
-
-### other method? ----
-install.packages("devtools")
-library(devtools)
-install_github("kjgilbert/QstFstComp")
-library(QstFstComp)
-
-?QstFstComp
-
-# Calculate Qst for each trait
-qst_result <- QstFstComp(data = mf_means, 
-                         trait = "Indole", 
-                         pop = "Population", 
-                         model = "half.sib.dam", 
-                         qst = TRUE) 
-
-# print Qst values
