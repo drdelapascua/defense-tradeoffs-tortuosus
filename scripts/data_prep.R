@@ -139,13 +139,12 @@ hist(x = data$totalaliphatic) # more normal
 
 # log transform all
 
-data$logGSL <- log10(data$totalGSL)
+data$logGSL <- log(data$totalGSL)
 
-data$logindoles <- log10(data$totalindole)
+data$logindoles <- log(data$totalindole)
 
-data$logaliphatics <- log10(data$totalaliphatic)
+data$logaliphatics <- log(data$totalaliphatic)
 
-data$logindoles <- log10(data$totalindole)
 
 hist(x = data$logGSL)
 hist(x = data$logindoles)
