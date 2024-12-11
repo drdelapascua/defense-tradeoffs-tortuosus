@@ -28,7 +28,7 @@ library(tidyverse)
 
 #total gsl
 GSL_totals <-  read.csv("./data/mf_means.csv") %>%
-  select(fam = "Population", trt = "treatment",  rep = "mf", res = "totalGSL") %>%
+  select(fam = "Population", trt = "treatment",  rep = "mf", res = "logGSL") %>%
   # filter out pop with no replication - note: write up rationale in methods
   filter(!fam %in% c("MtSH", "YO10")) %>% 
   mutate(fam = as.numeric(as.integer(as.factor(fam)))) %>%
@@ -42,13 +42,12 @@ GSL_totals <-  read.csv("./data/mf_means.csv") %>%
   mutate(rep_numeric = as.integer(factor(rep))) %>%
   ungroup() %>%
   mutate(rep = as.numeric(rep_numeric)) %>%
-  select(-rep_numeric)
-
+  select(-rep_numeric) 
 str(GSL_totals)
   
 #total aliphatic
 aliphatic_totals <-  read.csv("./data/mf_means.csv") %>%
-  select(fam = "Population", trt = "treatment",  rep = "mf", res = "totalaliphatic") %>%
+  select(fam = "Population", trt = "treatment",  rep = "mf", res = "logaliphatics") %>%
   # filter out pop with no replication
   filter(!fam %in% c("MtSH", "YO10")) %>% 
   mutate(fam = as.numeric(as.integer(as.factor(fam)))) %>%
@@ -62,7 +61,7 @@ aliphatic_totals <-  read.csv("./data/mf_means.csv") %>%
   mutate(rep_numeric = as.integer(factor(rep))) %>%
   ungroup() %>%
   mutate(rep = as.numeric(rep_numeric)) %>%
-  select(-rep_numeric)
+  select(-rep_numeric) 
 
 str(aliphatic_totals)
 
@@ -82,7 +81,9 @@ indole_totals <-  read.csv("./data/mf_means.csv") %>%
   mutate(rep_numeric = as.integer(factor(rep))) %>%
   ungroup() %>%
   mutate(rep = as.numeric(rep_numeric)) %>%
-  select(-rep_numeric)
+  select(-rep_numeric) %>%
+  filter_all(all_vars(is.finite(.)))
+
 
 str(indole_totals)
 
@@ -125,7 +126,7 @@ tcrit=qt(0.975,numfams)           # critical value of t statistic with numfams d
 chi2critlo=qchisq(.975,numfams-1) # critical lower value of chi-square statistic with numfams-1 degrees of freedom     
 chi2critup=qchisq(.025,numfams-1) # critical upper value of chi-square statistic with numfams-1 degrees of freedom   
 
-data = indole_totals
+data = aliphatic_totals
 attach(data)  # column headings in datafile must be fam, trt, rep, res
 
 Nc=Nd=Cest=Dest=Cc=Cd=matrix(0,numfams,1) # making matrices for each variable (see below for what they are)

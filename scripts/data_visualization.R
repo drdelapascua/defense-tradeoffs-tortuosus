@@ -22,6 +22,12 @@ pop_means_long <- read.csv("./data/pop_means_long.csv") %>%
   select(-X)
 head(pop_means_long)
 
+elevation_dat <- read.csv("./data/elevation.csv") %>%
+  select(Elevation, Population)
+
+pop_means_long_el <- pop_means_long %>%
+  left_join(elevation_dat, by = "Population")
+
 #total gsl
 GSL_totals <-  read.csv("./data/dw.csv") %>%
   filter(treatment == "C") %>% # filter for the controls
@@ -55,14 +61,16 @@ ggplot(pop_means_long, aes(x = treatment, y = value, fill = compound)) +
   labs(x = "Population", y = "Mean Value", fill = "Compound") +
   theme_minimal()
 
-#build barplot with just butenyl & allyl
-ab_means <- pop_means_long %>%
-  filter(compound %in% c("Allyl", "Butenyl"))
+#build barplot with just aliphatic & indole
+ab_means <- pop_means_long_el %>%
+  filter(compound %in% c("totalaliphatic", "totalindole")) %>%
+  mutate(Population = factor(Population, levels = unique(Population[order(Elevation)])))
+
 
 ggplot(ab_means, aes(x = treatment, y = value, fill = compound)) + 
   geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
   facet_wrap(~ Population) +  # Create separate plots for each treatment
-  labs(x = "Population", y = "Mean Value", fill = "Compound") +
+  labs(x = "Treatment", y = "ug/g glucosinolate", fill = "Compound") +
   theme_minimal()
 
 # build barplot with all other cmpds

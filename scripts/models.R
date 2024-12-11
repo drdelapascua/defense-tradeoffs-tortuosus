@@ -18,7 +18,43 @@ data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dw.csv")
 
 head(data)
 
-means <- read.csv("./data/mf_means.csv")
+growth_data <- read.csv("./data/mf_means.csv") %>%
+  select(Population, mf, treatment, biomass, logGSL, logindoles, logaliphatics) %>%
+  filter(treatment == "C") %>%
+  filter(!logindoles == "-Inf")
+
+# Growth ~ defense models - q3 ----
+
+#### total GSLs ----
+hist(growth_data$logGSL)
+growth_totalGSL_m1 <- lme(logGSL ~ biomass, random = ~1 | Population, data = growth_data)
+summary(growth_totalGSL_m1)
+
+# model diagnostics
+plot(growth_totalGSL_m1) # scatering around 0-ish
+qqnorm(residuals(growth_totalGSL_m1))
+qqline(residuals(growth_totalGSL_m1))
+
+#### total indoles ----
+hist(growth_data$logindoles)
+growth_indoles_m1 <- lme(logindoles ~ biomass, random = ~1 | Population, data = growth_data)
+summary(growth_indoles_m1)
+
+# model diagnostics
+plot(growth_indoles_m1) # scatering around 0-ish
+qqnorm(residuals(growth_indoles_m1))
+qqline(residuals(growth_indoles_m1))
+
+#### total aliphatics ----
+hist(growth_data$logaliphatics)
+growth_aliphatics_m1 <- lme(logaliphatics ~ biomass, random = ~1 | Population, data = growth_data)
+summary(growth_aliphatics_m1)
+
+# model diagnostics
+plot(growth_indoles_m1) # scatering around 0-ish
+qqnorm(residuals(growth_indoles_m1))
+qqline(residuals(growth_indoles_m1))
+
 
 # Climate & totals ----
 

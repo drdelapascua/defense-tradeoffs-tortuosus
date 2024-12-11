@@ -7,15 +7,11 @@ library(tidyverse)
 library(maps)
 library(rworldmap)
 
-setwd("~/GitHub/defense-tradeoffs-tortuosus")
-
 #### Map of populations for defense trade-off project
 
 #load points
-pops <- read.csv("defense_tradeoff_tortuosus_populations.csv", header = T) 
-
-#points for herb drought
-pops <- read.csv("herb_drought_populations.csv")
+pops <- read.csv("data/elevation.csv", header = T) %>%
+  select( "pops" = Population, "lat" = Lat, "long" = Long, "elevation" = Elevation)
 
 plot(x =pops$long , y =pops$lat )
 
@@ -42,9 +38,10 @@ map <- ggplot() +
 map
 
 map + 
-  geom_label_repel(aes(label = pops$site_abrev, x=pops$long, y=pops$lat),
+  geom_label_repel(aes(label = pops$pops, x=pops$long, y=pops$lat),
                      box.padding   = 0.35, 
                      point.padding = 0.5,
-                     segment.color = 'grey50')
+                     segment.color = 'grey50',
+                     max.overlaps = 50 )
 
 head(pops)

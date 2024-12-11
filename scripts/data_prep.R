@@ -183,7 +183,8 @@ mf_means <- data %>%
     totalGSL = mean(totalGSL),
     logGSL = mean(logGSL),
     logindoles = mean(logindoles),
-    logaliphatics = mean(logaliphatics)
+    logaliphatics = mean(logaliphatics),
+    biomass = mean(biomass)
   )
 
 # Use distinct to see if additional grouping variables are present
@@ -215,7 +216,8 @@ pop_means <- mf_means %>%
     GSL_totalindole = mean(totalindole),
     GSL_totalGSL = mean(totalGSL),
     GSL_logindoles = mean(logindoles),
-    GSL_logaliphatics = mean(logaliphatics)
+    GSL_logaliphatics = mean(logaliphatics),
+    GSL_biomass = mean(biomass)
   )
 
 head(pop_means)
