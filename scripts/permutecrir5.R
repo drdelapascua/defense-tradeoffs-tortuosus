@@ -385,3 +385,20 @@ plot(edgeb[-length(edgeb)],Fb,type="l",ylab="Cumulative probability",xlab="Regre
 axis(1,btks)
 lines(edgeb[bo]*c(1,1),c(0,Fb[bo]),lwd=2)
 lines(c(bmin,edgeb[bo]),Fb[bo]*c(1,1),lwd=2)
+
+# plot relationship
+plot_data <- data.frame(
+  ConstitutiveResistance = Cest,
+  InducedResistance = Iest
+)
+
+ggplot(plot_data, aes(x = ConstitutiveResistance, y = InducedResistance)) +
+  geom_point(color = "blue", size = 3) +                 # Scatter plot of points
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey") +  # Dashed horizontal line at y = 0
+  geom_smooth(method = "lm", color = "red", se = FALSE) + # Linear regression line
+  labs(
+    title = "Relationship Between Constitutive and Induced Resistance",
+    x = "Constitutive Resistance (Cest)",
+    y = "Induced Resistance (Iest)"
+  ) +
+  theme_minimal()    

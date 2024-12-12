@@ -67,10 +67,8 @@ mf_means_with_climate <- read.csv("./data/mf_means_with_clim.csv") %>%
 # simple model with pop as random effect
 
 # Total GSLs
-test_m1 <- lmer(logGSL ~ PC1 + (1|Population), data = mf_means_with_climate)
-test_m1_nore <- lm(logGSL ~ PC1, data = mf_means_with_climate)
+test_m1 <- lme(logGSL ~ PC1, random = ~1 | Population, data = mf_means_with_climate)
 summary(test_m1)
-summary(test_m1_nore)
 
 ggplot(data = mf_means_with_climate, aes(x = PC1, y = logGSL, color = elevation, label + elevation)) + 
   geom_point(size = 3) + 
@@ -94,10 +92,9 @@ ggplot(data = mf_means_with_climate, aes(x = PC2, y = logGSL, color = elevation,
 # drop inf
 mf_means_with_climate_infdrop <- mf_means_with_climate %>%
   filter_all(all_vars(. != -Inf))
-test_m2 <- lmer(logindoles ~ PC1 + (1|Population), data = mf_means_with_climate_infdrop)
-test_m2_nore <- lm(logindoles ~ PC1, data = mf_means_with_climate_infdrop)
+test_m2 <- lme(logindoles ~ PC1, random = ~1 | Population, data = mf_means_with_climate_infdrop)
 summary(test_m2)
-summary(test_m2_nore)
+
 
 ggplot(data = mf_means_with_climate_infdrop, aes(x = PC1, y = logindoles, color = elevation, label + elevation)) + 
   geom_point(size = 3) + 
@@ -118,10 +115,8 @@ ggplot(data = mf_means_with_climate_infdrop, aes(x = PC2, y = logindoles, color 
   scale_color_gradient(low = "orange", high = "blue")
 
 # Total log aliphatics
-test_m4 <- lmer(logaliphatics ~ PC1 + (1|Population), data = mf_means_with_climate)
-test_m4_nore <- lm(logaliphatics ~ PC1, data = mf_means_with_climate)
+test_m4 <- lme(logaliphatics ~ PC1, random = ~1 | Population, data = mf_means_with_climate)
 summary(test_m4)
-summary(test_m4_nore)
 
 ggplot(data = mf_means_with_climate, aes(x = PC1, y = logaliphatics, color = elevation, label + elevation)) + 
   geom_point(size = 3) + 

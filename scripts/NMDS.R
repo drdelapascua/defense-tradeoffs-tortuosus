@@ -12,28 +12,34 @@ library(funspace)
 library(installr)
 library(tibble)
 library(mclust)
+library(ggrepel)
+
 
 ### load data
 dw <-  read.csv("./data/dw.csv") %>%
   select("Population", "mf", "rep", "Elevation", "treatment", "X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "X3MT_13.6", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8")
   #whatever order you put elect in is the order of the df, pop mf trt first
 
+mf_means_nmds <-  read.csv("./data/mf_means.csv") %>%
+  select("Population", "mf", "treatment", "X3MSO", "OHAlkenyl", "X4MSO", "Allyl", "X5MSO", "Butenyl", "X3MT", "MSOO", "OHI3M", "X4MT", "Flavonol16", "I3M", "Flavonol17", "Flavonol18", "Indole")
+#whatever order you put elect in is the order of the df, pop mf trt first
+
 
 ### center and standardize data
 # standardizing the data (all will have variance = 1)
 # centering gives all a mean of 0
-head(dw)
-dw_scaling <- as.data.frame(scale(dw[6:20]))
-dw_scaled <- dw[1:5]
-dw_scaled[6:20] <- dw_scaling # merge two dataframes
+head(mf_means_nmds)
+mf_means_nmds_scaling <- as.data.frame(scale(mf_means_nmds[4:18]))
+mf_means_nmds_scaled <- mf_means_nmds[1:3]
+mf_means_nmds_scaled[4:18] <- mf_means_nmds_scaling # merge two dataframes
 
 # create data frame that is just columns with scaled compounds and labels as colnames
-data_scaled2 = dw_scaled %>%
+data_scaled2 = mf_means_nmds_scaled %>%
   # make and ID variable
-  mutate(ID = paste(Population, treatment, mf, rep, Elevation, sep = "_")) %>%
+  mutate(ID = paste(Population, treatment, mf, sep = "_")) %>%
   # make rownames combo of pop, tmt, mf, and rep
   column_to_rownames(var = "ID")  %>%
-  select(-Population, -treatment, -mf, -rep, -Elevation)
+  select(-Population, -treatment, -mf)
 
 
 # Perform NMDS
@@ -84,40 +90,24 @@ correlations5 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 5]))
 
 #when error - ask what is it doing/trying to do?
 
-correlations_1 # strongest is negative butenyl, -.8. Allyl is .5, 4MSO -.6, 3MSO is .65
+correlations1 # strongest is negative butenyl, -.8. Allyl is .5, 4MSO -.6, 3MSO is .65
 correlations_2 # pos associated with Flavonol-18 & 3MT, neg associated w/ 5MSO
 correlations_3 # pos associated with OH-Alkenyl, neg associated with Allyl, 5MSO & Flavonol 18
 correlations_4 # pos associated with i3M and 4MSO, neg associated with indole
 correlations_5 # pos associated with indole, neg associated with flavonol-16 and OH-Alkenyl
 
-# compounds to dig into: 
-# 3MSO
-# 4MSO
-# Allyl
-# OH-Alkenyl
-# 5MSO
-# Butenyl
-# 3MT
-# I3M
-# Flavonol-16
-# Flavonol-18
-# Indole
-
-# 4 not included:
-# MSOO
-# OH-I3M
-# 4MT
-# Flavonol-17
-
-df <- data.frame(
-  Axis_1 = correlations_1,
-  Axis_2 = correlations_2,
-  Axis_3 = correlations_3,
-  Axis_4 = correlations_4,
-  Axis_5 = correlations_5
+# Combine all correlations into a data frame
+correlation_table <- data.frame(
+  Variable = colnames(data_scaled2),
+  NMDS1 = correlations1,
+  NMDS2 = correlations2,
+  NMDS3 = correlations3,
+  NMDS4 = correlations4,
+  NMDS5 = correlations5
 )
 
-df
+# save dataframe
+write.csv(correlation_table, file = "output/NMDS_axes_correlation_table.csv")
 
 #plot correlations
 barplot(correlations_1, names.arg = colnames(data_scaled2),
@@ -151,15 +141,22 @@ barplot(correlations_7, names.arg = colnames(data_scaled2),
 
 #visualize NMDS
 
+elevation <- read.csv(file = "data/elevation.csv") %>%
+  mutate(Population = ifelse(Population == "YOSE10", "YO10", Population))
+
+mf_means_nmds_scaled_withel <- mf_means_nmds_scaled %>%
+  left_join(elevation, by = "Population") %>%
+  select(-c("Lat", "Long", "Seed.year"))
+
 #create grouping variable
-all_groups = dw_scaled %>%
-  select(Population, treatment, mf, rep, Elevation)
+all_groups = mf_means_nmds_scaled_withel %>%
+  select(Population, treatment, mf, Elevation)
 
 nmds_dist_scores = as.data.frame(scores(nmds_result5, "sites")) %>%
-  mutate(population = all_groups$Population, treatment = all_groups$treatment, mf = all_groups$mf, rep = all_groups$rep, elevation = all_groups$Elevation)
+  mutate(population = all_groups$Population, treatment = all_groups$treatment, mf = all_groups$mf, elevation = all_groups$Elevation)
 
 # plot it 
-nmds_dist_plot_trt = ggplot(data = nmds_dist_scores, aes(x = NMDS1, y= NMDS2)) +
+nmds_dist_plot_trt = ggplot(data = nmds_dist_scores_, aes(x = NMDS1, y= NMDS2)) +
   geom_point(aes(colour = treatment), size= 5, alpha = 0.75)   + theme_bw() +
   scale_color_manual(values = c("firebrick4" , "darkolivegreen4", "dodgerblue4")) +
   scale_shape_manual(values = c(1,18))+
@@ -167,12 +164,25 @@ nmds_dist_plot_trt = ggplot(data = nmds_dist_scores, aes(x = NMDS1, y= NMDS2)) +
 
 nmds_dist_plot_trt
 
-nmds_dist_plot_pop = ggplot(data = nmds_dist_scores, aes(x = NMDS1, y= NMDS2)) +
+nmds_dist_plot_el = ggplot(data = nmds_dist_scores, aes(x = NMDS1, y= NMDS2)) +
   geom_point(aes(colour = elevation, shape = treatment), size= 5, alpha = 0.75)   + theme_bw() +
   facet_wrap(~treatment) +
   labs(color = "Elevation", shape= "treatment") 
 
+nmds_dist_plot_el # need to add el back in 12-12-24
+
+nmds_dist_plot_pop = ggplot(data = nmds_dist_scores, aes(x = NMDS1, y = NMDS2)) +
+  geom_point(aes(colour = elevation, shape = treatment), size = 5, alpha = 0.75) + 
+  geom_text_repel(aes(label = all_groups$Population), size = 3, max.overlaps = 10) +  # Add repelled labels
+  theme_bw() +
+  facet_wrap(~treatment) +
+  labs(color = "Elevation", shape = "Treatment") +
+  theme(legend.position = "right")  +
+  scale_color_gradient(low="orange", high="blue")
+
+
 nmds_dist_plot_pop
+
 
 #zeros are creating the straight lines - maybe 0-0 or something between groups 
 

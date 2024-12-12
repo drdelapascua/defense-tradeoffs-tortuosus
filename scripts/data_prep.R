@@ -327,10 +327,13 @@ scaling_factor <- 3  # Adjust this value as needed
 pca_loadings <- pca_loadings %>%
   mutate(PC1 = PC1 * scaling_factor, PC2 = PC2 * scaling_factor)
 
+# Ensure `elevation` is part of the PCA scores data
+pca_scores <- cbind(pca_scores, elevation = my_climate$elevation)
+
 # Plot PCA
 ggplot() +
-  # Plot sample points
-  geom_point(data = pca_scores, aes(x = PC1, y = PC2), color = "blue", size = 3) +
+  # Plot sample points with elevation as color
+  geom_point(data = pca_scores, aes(x = PC1, y = PC2, color = elevation), size = 3) +
   # Add labels for sample points
   geom_text(data = pca_scores, aes(x = PC1, y = PC2, label = names), vjust = -0.5, size = 3) +
   # Add loading vectors as arrows
@@ -340,7 +343,8 @@ ggplot() +
   geom_text(data = pca_loadings, aes(x = PC1, y = PC2, label = variable), 
             color = "red", vjust = -0.5, size = 3) +
   # Add axis labels and title
-  labs(title = "PCA Plot with Loadings", x = "PC1", y = "PC2") +
+  labs(title = "PCA Plot with Loadings and Elevation", x = "PC1", y = "PC2", color = "Elevation") +
+  scale_color_gradient(low="orange", high="blue") +
   theme_minimal()
 
 # Add PC1 and PC2 values to the big dataframe
