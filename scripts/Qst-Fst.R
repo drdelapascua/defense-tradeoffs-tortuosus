@@ -14,26 +14,29 @@ library(ggplot2)
 library(adegenet)
 library(hierfstat)
 library(tidyverse)
-library(ggdoctheme) # Custom package https://github.com/rishavray/ggdoctheme
 library(ggthemes)
 library(ggtext)
 library(lme4)
 library(ggrepel)
 
-
-# Pst code ----
+### Constitutive defenses ----
 
 #### Total GSLs ----
 
-# load data
+#### > load data ----
 GSL_totals <-  read.csv("./data/mf_means.csv") %>%
   filter(treatment == "C") %>% # filter for the controls
   select("Population", "mf", "logGSL")%>% 
   filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
 
 # no extreme values 
-
 GSL_totals_ex_rem <-  read.csv("./data/mf_means_ex_rem.csv") %>%
+  filter(treatment == "C") %>% # filter for the controls
+  select("Population", "mf", "logGSL")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+# no OH-I3M
+GSL_totals_rem_ohi3m <-  read.csv("./data/mf_means_rem_ohi3m.csv") %>%
   filter(treatment == "C") %>% # filter for the controls
   select("Population", "mf", "logGSL")%>% 
   filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
@@ -41,7 +44,7 @@ GSL_totals_ex_rem <-  read.csv("./data/mf_means_ex_rem.csv") %>%
 
 # Fit the random effects model
 
-# with extreme values
+#### > with extreme values ----
 
 # log total GSLs
 hist(GSL_totals$logGSL)
@@ -81,7 +84,7 @@ for (i in 1:nperm) {
 # Calculate mean, standard error, and confidence intervals for bootstrapped PST values
 mean_PST <- mean(tablePSTboot, na.rm = TRUE)
 se_PST <- sd(tablePSTboot, na.rm = TRUE) / sqrt(length(na.omit(tablePSTboot)))
-pst_ci <- quantile(tablePSTboot, c(0.025, 0.5, 0.975))
+pst_ci <- quantile(tablePSTboot, c(0.025, 0.5, 0.975), na.rm = TRUE)
 
 cat("Bootstrap Results:\n")
 cat("Mean PST:", mean_PST, "\n")
@@ -89,17 +92,16 @@ cat("Standard Error:", se_PST, "\n")
 cat("95% Confidence Interval:", pst_ci, "\n")
 
 # Calculate confidence intervals
-quantpop <- quantile(MS.bootpop, c(0.025, 0.975))
+quantpop <- quantile(tablePSTboot, c(0.025, 0.975), na.rm = TRUE)
 MS.bootpop.min <- as.numeric(quantpop[1])
 MS.bootpop.max <- as.numeric(quantpop[2])
 
-quantres <- quantile(MS.bootres, c(0.025, 0.975))
+quantres <- quantile(tablePSTboot, c(0.025, 0.975), na.rm = TRUE)
 MS.bootres.min <- as.numeric(quantres[1])
 MS.bootres.max <- as.numeric(quantres[2])
 
-# Calculate min and max Pst
-PST.boot.min <- MS.bootpop.min / (MS.bootpop.min + 2 * MS.bootres.min)
-
+# order PST observations
+PSTobs.ord.df <- as.data.frame(PSTobs.ord)
 
 # Plot PST as a function of r
 PSTobs <- (dist.r * varpop.obs) / ((dist.r * varpop.obs) + (2 * varres.obs))
@@ -114,13 +116,12 @@ legend(
   legend = c("PST", "95% CI", "Upper bound of 95% CI of FST"),
   col = c("black", "grey", "black", "black")
 )
-
 # PST min and max as functions of r
-PSTmin <- (dist.r * min(MS.bootpop)) / ((dist.r * min(MS.bootpop)) + 2 * min(MS.bootres))
+PSTmin <- dist.r * MS.bootpop.min
 PSTmin.ord <- sort(PSTmin)
 lines(dist.r, PSTmin.ord, type = "l", lty = "dotted", lwd = 2, col = "grey")
 
-PSTmax <- (dist.r * max(MS.bootpop)) / ((dist.r * max(MS.bootpop)) + 2 * max(MS.bootres))
+PSTmax <- dist.r * MS.bootpop.max
 PSTmax.ord <- sort(PSTmax)
 lines(dist.r, PSTmax.ord, type = "l", lty = "dotted", lwd = 2, col = "grey")
 
@@ -135,9 +136,9 @@ abline(v = pst, col = "blue", lwd = 2, lty = "solid")
 legend("topright", legend = c("95% CI Bounds", "Observed PST", "Bootstrapped Mean PST", "Observed FST"), col = c("red", "blue", "green", "black"), lty = c("dashed", "solid", "solid", "dotted"))
 abline(v = 0.03, col = "black", lwd = 2, lty = "dotted")
 
-# Without extreme values
+#### > Without extreme values ----
 
-# log total GSLs
+# log total GSLs 
 hist(GSL_totals_ex_rem$logGSL)
 
 model_totalGSL_ex_rem <- lme(logGSL ~ 1, random = ~1|Population, data = GSL_totals_ex_rem)
@@ -182,23 +183,78 @@ cat("Mean PST:", mean_PST_ex_rem, "\n")
 cat("Standard Error:", se_PST_ex_rem, "\n")
 cat("95% Confidence Interval:", pst_ci_ex_rem, "\n")
 
+#### > Without OH-I3M ----
 
-#### total indoles #### ----
+# log total GSLs 
+hist(GSL_totals_rem_ohi3m$logGSL)
+
+model_totalGSL_rem_ohi3m <- lme(logGSL ~ 1, random = ~1|Population, data = GSL_totals_rem_ohi3m)
+
+# PST for dist.r = 1
+varpop.obs.rem.ohi3m <- as.numeric(VarCorr(model_totalGSL_rem_ohi3m)[1]) # Between-population variance
+varres.obs.rem.ohi3m <- as.numeric(VarCorr(model_totalGSL_rem_ohi3m)[2]) # Within-population variance
+pst_rem_ohi3m <- varpop.obs.rem.ohi3m / (varpop.obs.rem.ohi3m + (2 * varres.obs.ex.rem))
+
+# define params set up matrices
+nperm<-10000
+dist.r <- seq(0, 1, by = 0.0001)  # see expression for PST
+GSLboot.ex.rem.ohi3m<- matrix(NA, nrow = nperm, ncol = nrow(GSL_totals_rem_ohi3m))
+MS.bootpop.rem.ohi3m <-matrix(NA,nrow=nperm,ncol=1)
+MS.bootres.rem.ohi3m <-matrix(NA,nrow=nperm,ncol=1)
+tablePSTboot.rem.ohi3m<-matrix(NA,nrow=nperm,ncol=1)
+
+# Bootstrap
+for (i in 1:nperm) {
+  # Resample within each population
+  resampled_data_totalGSLs_rem_ohi3m <- do.call(rbind, lapply(split(GSL_totals_rem_ohi3m,GSL_totals_rem_ohi3m$Population), function(pop_data) {
+    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
+  }))
+  
+  # Fit the model to the bootstrap sample
+  model_totalGSLboot_rem_ohi3m <- lme(logGSL ~ 1, random = ~1|Population, data = resampled_data_totalGSLs_rem_ohi3m)
+  
+  # Store variances and calculate PST
+  variance_components_totalGSLb_rem_ohi3m <- as.data.frame(VarCorr(model_totalGSLboot_rem_ohi3m))
+  MS.bootpop.rem.ohi3m[i] <- as.numeric(VarCorr(model_totalGSLboot_rem_ohi3m)[1]) 
+  MS.bootres.rem.ohi3m[i] <- as.numeric(VarCorr(model_totalGSLboot_rem_ohi3m)[2])
+  tablePSTboot.rem.ohi3m[i] <- MS.bootpop.rem.ohi3m[i] / (MS.bootpop.rem.ohi3m[i] + 2 * MS.bootres.rem.ohi3m[i])
+}
+
+# Calculate mean, standard error, and confidence intervals for bootstrapped PST values
+mean_PST_rem_ohi3m <- mean(tablePSTboot.rem.ohi3m, na.rm = TRUE)
+se_PST_rem_ohi3m <- sd(tablePSTboot.rem.ohi3m, na.rm = TRUE) / sqrt(length(na.omit(tablePSTboot.rem.ohi3m)))
+pst_ci_rem_ohi3m <- quantile(tablePSTboot.rem.ohi3m, c(0.025, 0.5, 0.975))
+
+cat("Bootstrap Results:\n")
+cat("Mean PST:", mean_PST_rem_ohi3m, "\n")
+cat("Standard Error:", se_PST_rem_ohi3m, "\n")
+cat("95% Confidence Interval:", pst_ci_rem_ohi3m, "\n")
+
+
+#### total indoles ----
+
+#### > load data ----
 
 # Read and preprocess data
 indole_totals <- read.csv("./data/mf_means.csv") %>%
   filter(treatment == "C") %>%  # Filter for control treatment
   select("Population", "mf", "totalindole", "logindoles") %>%
-  filter(Population %in% c("BH", "IH", "TM2", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3")) %>%
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3")) %>%
   filter(logindoles != -Inf)
 
 indole_totals_ex_rem <- read.csv("./data/mf_means_ex_rem.csv") %>%
   filter(treatment == "C") %>%  # Filter for control treatment
   select("Population", "mf", "totalindole", "logindoles") %>%
-  filter(Population %in% c("BH", "IH", "TM2", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3")) %>%
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3")) %>%
+  filter(logindoles != -Inf)
+ 
+indole_totals_rem_ohi3m <- read.csv("./data/mf_means_rem_ohi3m.csv") %>%
+  filter(treatment == "C") %>%  # Filter for control treatment
+  select("Population", "mf", "totalindole", "logindoles") %>%
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3")) %>%
   filter(logindoles != -Inf)
 
-# with extreme values
+#### > with extreme values -----
 
 # Plot histogram of logindoles
 hist(indole_totals$logindoles)
@@ -283,11 +339,11 @@ legend(
 )
 
 # PST min and max as functions of r
-PSTmin_indole <- (dist.r * min(indole_bootpop)) / ((dist.r * min(indole_bootpop)) + 2 * min(indole_bootres))
+PSTmin_indole <- dist.r*pst_boot_min_indole
 PSTmin.ord_indole <- sort(PSTmin_indole)
 lines(dist.r, PSTmin.ord_indole, type = "l", lty = "dotted", lwd = 2, col = "grey")
 
-PSTmax_indole <- (dist.r * max(indole_bootpop)) / ((dist.r * max(indole_bootpop)) + 2 * max(indole_bootres))
+PSTmax_indole <- dist.r * pst_boot_max_indole
 PSTmax.ord_indole <- sort(PSTmax_indole)
 lines(dist.r, PSTmax.ord_indole, type = "l", lty = "dotted", lwd = 2, col = "grey")
 
@@ -303,7 +359,7 @@ abline(v = pst_observed_indole, col = "blue", lwd = 2, lty = "solid")
 legend("topright", legend = c("95% CI Bounds", "Observed PST", "Bootstrapped Mean PST", "Observed FST"), col = c("red", "blue", "green", "black"), lty = c("dashed", "solid", "solid", "dotted"))
 abline(v = 0.03, col = "black", lwd = 2, lty = "dotted")
 
-# without extreme values
+#### > without extreme values ----
 
 # Plot histogram of logindoles
 hist(indole_totals_ex_rem$logindoles)
@@ -356,18 +412,95 @@ se_indole_pst_ex_rem <- sd(table_pst_boot_indole_ex_rem, na.rm = TRUE) / sqrt(le
 pst_ci_indole_ex_rem <- quantile(table_pst_boot_indole_ex_rem, c(0.025, 0.5, 0.975))
 
 # Print bootstrapped PST mean and standard error
-print(paste("Mean Bootstrapped PST:", mean_indole_pst))
-print(paste("Standard Error Bootstrapped PST:", se_indole_pst))
-cat("95% Confidence Interval:", pst_ci, "\n")
+print(paste("Mean Bootstrapped PST:", mean_indole_pst_ex_rem))
+print(paste("Standard Error Bootstrapped PST:", se_indole_pst_ex_rem))
+cat("95% Confidence Interval:", pst_ci_indole_ex_rem, "\n")
+
+#### > without OH-I3M ----
+
+# Plot histogram of logindoles
+hist(indole_totals_rem_ohi3m$logindoles)
+# compare to regular plot
+hist(indole_totals$logindoles)
 
 
-#### aliphatics ####
+# Boxplot to visualize logindoles by population
+ggplot(aes(x = Population, y = logindoles), data = indole_totals_rem_ohi3m) +
+  geom_boxplot()
+# compare to regular plot
+ggplot(aes(x = Population, y = logindoles), data = indole_totals) +
+  geom_boxplot()
+
+# Fit mixed model for total indoles
+model_totalindoles_rem_ohi3m <- lme(logindoles ~ 1, random = ~1 | Population, data = indole_totals_rem_ohi3m)
+
+# Calculate observed variances
+varpop.obs.indole.rem.ohi3m <- as.numeric(VarCorr(model_totalindoles_rem_ohi3m)[1])  # Between-population variance
+varres.obs.indole.rem.ohi3m <- as.numeric(VarCorr(model_totalindoles_rem_ohi3m)[2])  # Within-population variance
+
+# Calculate observed PST for dist.r = 1
+pst_observed_indole_rem_ohi3m <- varpop.obs.indole.rem.ohi3m / (varpop.obs.indole.rem.ohi3m + 2 * varres.obs.indole.rem.ohi3m)
+
+# Print PST for verification
+print(paste("Observed PST:", pst_observed_indole_rem_ohi3m))
+
+# Set bootstrap parameters
+nperm <- 1000
+dist_r <- seq(0, 1, by = 0.0001)  # Range for PST calculation
+
+# Initialize matrices for bootstrapping results
+indole_bootpop_rem_ohi3m <- matrix(NA, nrow = nperm, ncol = 1)
+indole_bootres_rem_ohi3m <- matrix(NA, nrow = nperm, ncol = 1)
+table_pst_boot_indole_rem_ohi3m <- matrix(NA, nrow = nperm, ncol = 1)
+
+# Bootstrap loop
+for (i in 1:nperm) {
+  # Resample data within each population
+  resampled_data_indole_rem_ohi3m <- do.call(rbind, lapply(split(indole_totals_rem_ohi3m, indole_totals_rem_ohi3m$Population), function(pop_data) {
+    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
+  }))
+  
+  # Fit the model to the bootstrap sample
+  model_totalindoles_boot_rem_ohi3m <- lme(logindoles ~ 1, random = ~1 | Population, data = resampled_data_indole_rem_ohi3m)
+  
+  # Store variances and calculate PST for the bootstrap sample
+  indole_bootpop_rem_ohi3m[i] <- as.numeric(VarCorr(model_totalindoles_boot_rem_ohi3m)[1])
+  indole_bootres_rem_ohi3m[i] <- as.numeric(VarCorr(model_totalindoles_boot_rem_ohi3m)[2])
+  table_pst_boot_indole_rem_ohi3m[i] <- indole_bootpop_rem_ohi3m[i] / (indole_bootpop_rem_ohi3m[i] + 2 * indole_bootres_rem_ohi3m[i])
+}
+
+# Calculate mean and standard error of bootstrapped PST values
+mean_indole_pst_rem_ohi3m <- mean(table_pst_boot_indole_rem_ohi3m, na.rm = TRUE)
+se_indole_pst_rem_ohi3m <- sd(table_pst_boot_indole_rem_ohi3m, na.rm = TRUE) / sqrt(length(na.omit(table_pst_boot_indole_rem_ohi3m)))
+pst_ci_indole_rem_ohi3m <- quantile(table_pst_boot_indole_rem_ohi3m, c(0.025, 0.5, 0.975))
+
+# Print bootstrapped PST mean and standard error
+print(paste("Mean Bootstrapped PST:", mean_indole_pst_rem_ohi3m))
+print(paste("Standard Error Bootstrapped PST:", se_indole_pst_ex_rem))
+cat("95% Confidence Interval:", pst_ci_ex_rem, "\n")
+
+
+#### total aliphatics ----
+
+#### > load data ----
 
 #total aliphatic
 aliphatic_totals <-  read.csv("./data/mf_means.csv") %>%
   filter(treatment == "C") %>% # filter for the controls
   select("Population", "mf", "logaliphatics")%>% 
   filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+aliphatic_totals_ex_rem <- read.csv("./data/mf_means_ex_rem.csv") %>%
+  filter(treatment == "C") %>%  # Filter for control treatment
+  select("Population", "mf", "totalaliphatic", "logaliphatics") %>%
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+aliphatic_totals_rem_ohi3m <- read.csv("./data/mf_means_rem_ohi3m.csv") %>%
+  filter(treatment == "C") %>%  # Filter for control treatment
+  select("Population", "mf", "totalaliphatic", "logaliphatics") %>%
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+#### > with extreme values ----
 
 # Fit the random effects model
 
@@ -410,18 +543,17 @@ mean_aliphatic_PST <- mean(tablePSTboot.aliphatic, na.rm = TRUE)
 se_aliphatic_PST <- sd(tablePSTboot.aliphatic, na.rm = TRUE) / sqrt(length(na.omit(tablePSTboot.aliphatic)))
 
 # Calculate confidence intervals
-quantpop.aliphatic <- quantile(aliphatic.bootpop, c(0.025, 0.975))
+quantpop.aliphatic <- quantile(tablePSTboot.aliphatic, c(0.025, 0.975))
 aliphatic.bootpop.min <- as.numeric(quantpop.aliphatic[1])
 aliphatic.bootpop.max <- as.numeric(quantpop.aliphatic[2])
 
-quantres.aliphatic <- quantile(aliphatic.bootres, c(0.025, 0.975))
+quantres.aliphatic <- quantile(tablePSTboot.aliphatic, c(0.025, 0.975))
 aliphatic.bootres.min <- as.numeric(quantres.aliphatic[1])
 aliphatic.bootres.max <- as.numeric(quantres.aliphatic[2])
 
 # Calculate min and max Pst
 PST.boot.min.aliphatic <- aliphatic.bootpop.min / (aliphatic.bootpop.min + 2 * aliphatic.bootres.min)
 PST.boot.max.aliphatic <- aliphatic.bootpop.max / (aliphatic.bootpop.max + 2 * aliphatic.bootres.max)
-
 
 # Plot PST as a function of r
 PSTobs.aliphatic <- (dist.r * varpop.obs.aliphatic) / ((dist.r * varpop.obs.aliphatic) + (2 * varres.obs.aliphatic))
@@ -439,11 +571,11 @@ legend(
 
 
 # PSTmin and PSTmax as functions of r
-PSTmin.aliphatic <- (dist.r * min(aliphatic.bootpop)) / ((dist.r * min(aliphatic.bootpop)) + 2 * min(aliphatic.bootres))
+PSTmin.aliphatic <- dist.r*aliphatic.bootpop.min
 PSTmin.ord.aliphatic <- sort(PSTmin.aliphatic)
 lines(dist.r, PSTmin.ord.aliphatic, type = "l", lty = "dotted", lwd = 2, col = "grey")
 
-PSTmax.aliphatic <- (dist.r * max(aliphatic.bootpop)) / ((dist.r * max(aliphatic.bootpop)) + 2 * max(aliphatic.bootpop))
+PSTmax.aliphatic <- dist.r * aliphatic.bootpop.max
 PSTmax.ord.aliphatic <- sort(PSTmax.aliphatic)
 lines(dist.r, PSTmax.ord.aliphatic, type = "l", lty = "dotted", lwd = 2, col = "grey")
 
@@ -458,6 +590,129 @@ abline(v = aliphatic.pst, col = "blue", lwd = 2, lty = "solid")
 legend("topright", legend = c("95% CI Bounds", "Observed PST", "Bootstrapped Mean PST", "Observed FST"), col = c("red", "blue", "green", "black"), lty = c("dashed", "solid", "solid", "dotted"))
 abline(v = 0.03, col = "black", lwd = 2, lty = "dotted")
 
+#### > without extreme values ----
+
+# Plot histogram of logaliphatics
+hist(aliphatic_totals_ex_rem$logaliphatics)
+hist(aliphatic_totals$logaliphatics)
+
+# Boxplot to visualize logaliphatics by population
+ggplot(aes(x = Population, y = logaliphatics), data = aliphatic_totals_ex_rem) +
+  geom_boxplot()
+
+# normal data for comparison
+ggplot(aes(x = Population, y = logaliphatics), data = aliphatic_totals_ex_rem) +
+  geom_boxplot()
+
+# Fit mixed model for total aliphatics
+model_totalaliphatics_ex_rem <- lme(logaliphatics ~ 1, random = ~1 | Population, data = aliphatic_totals_ex_rem)
+
+# Calculate observed variances
+varpop.obs.aliphatic.ex.rem <- as.numeric(VarCorr(model_totalaliphatics_ex_rem)[1])  # Between-population variance
+varres.obs.aliphatic.ex.rem <- as.numeric(VarCorr(model_totalaliphatics_ex_rem)[2])  # Within-population variance
+
+# Calculate observed PST for dist.r = 1
+pst_observed_aliphatic_ex_rem <- varpop.obs.aliphatic.ex.rem / (varpop.obs.aliphatic.ex.rem + 2 * varres.obs.aliphatic.ex.rem)
+
+# Print PST for verification
+print(paste("Observed PST:", pst_observed_aliphatic_ex_rem))
+
+# Set bootstrap parameters
+nperm <- 1000
+dist_r <- seq(0, 1, by = 0.0001)  # Range for PST calculation
+
+# Initialize matrices for bootstrapping results
+aliphatic_bootpop_ex_rem <- matrix(NA, nrow = nperm, ncol = 1)
+aliphatic_bootres_ex_rem <- matrix(NA, nrow = nperm, ncol = 1)
+table_pst_boot_aliphatic_ex_rem <- matrix(NA, nrow = nperm, ncol = 1)
+
+# Bootstrap loop
+for (i in 1:nperm) {
+  # Resample data within each population
+  resampled_data_aliphatic_ex_rem <- do.call(rbind, lapply(split(aliphatic_totals_ex_rem, aliphatic_totals_ex_rem$Population), function(pop_data) {
+    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
+  }))
+  
+  # Fit the model to the bootstrap sample
+  model_totalaliphatics_boot_ex_rem <- lme(logaliphatics ~ 1, random = ~1 | Population, data = resampled_data_aliphatic_ex_rem)
+  
+  # Store variances and calculate PST for the bootstrap sample
+  aliphatic_bootpop_ex_rem[i] <- as.numeric(VarCorr(model_totalaliphatics_boot_ex_rem)[1])
+  aliphatic_bootres_ex_rem[i] <- as.numeric(VarCorr(model_totalaliphatics_boot_ex_rem)[2])
+  table_pst_boot_aliphatic_ex_rem[i] <- aliphatic_bootpop_ex_rem[i] / (aliphatic_bootpop_ex_rem[i] + 2 * aliphatic_bootres_ex_rem[i])
+}
+
+# Calculate mean and standard error of bootstrapped PST values
+mean_aliphatic_pst_ex_rem <- mean(table_pst_boot_aliphatic_ex_rem, na.rm = TRUE)
+se_aliphatic_pst_ex_rem <- sd(table_pst_boot_aliphatic_ex_rem, na.rm = TRUE) / sqrt(length(na.omit(table_pst_boot_aliphatic_ex_rem)))
+pst_ci_aliphatic_ex_rem <- quantile(table_pst_boot_aliphatic_ex_rem, c(0.025, 0.5, 0.975))
+
+# Print bootstrapped PST mean and standard error
+print(paste("Mean Bootstrapped PST:", mean_aliphatic_pst_ex_rem))
+print(paste("Standard Error Bootstrapped PST:", se_aliphatic_pst_ex_rem))
+cat("95% Confidence Interval:", pst_ci_aliphatic_ex_rem, "\n")
+
+#### > without OH-I3M ----
+
+# Plot histogram of logaliphatics
+hist(aliphatic_totals_rem_ohi3m$logaliphatics)
+# compare to regular plot
+hist(aliphatic_totals$logaliphatics)
+
+# Boxplot to visualize logaliphatics by population
+ggplot(aes(x = Population, y = logaliphatics), data = aliphatic_totals_rem_ohi3m) +
+  geom_boxplot()
+# compare to regular plot
+ggplot(aes(x = Population, y = logaliphatics), data = aliphatic_totals) +
+  geom_boxplot()
+
+# Fit mixed model for total aliphatics
+model_totalaliphatics_rem_ohi3m <- lme(logaliphatics ~ 1, random = ~1 | Population, data = aliphatic_totals_rem_ohi3m)
+
+# Calculate observed variances
+varpop.obs.aliphatic.rem.ohi3m <- as.numeric(VarCorr(model_totalaliphatics_rem_ohi3m)[1])  # Between-population variance
+varres.obs.aliphatic.rem.ohi3m <- as.numeric(VarCorr(model_totalaliphatics_rem_ohi3m)[2])  # Within-population variance
+
+# Calculate observed PST for dist.r = 1
+pst_observed_aliphatic_rem_ohi3m <- varpop.obs.aliphatic.rem.ohi3m / (varpop.obs.aliphatic.rem.ohi3m + 2 * varres.obs.aliphatic.rem.ohi3m)
+
+# Print PST for verification
+print(paste("Observed PST:", pst_observed_aliphatic_rem_ohi3m))
+
+# Set bootstrap parameters
+nperm <- 1000
+dist_r <- seq(0, 1, by = 0.0001)  # Range for PST calculation
+
+# Initialize matrices for bootstrapping results
+aliphatic_bootpop_rem_ohi3m <- matrix(NA, nrow = nperm, ncol = 1)
+aliphatic_bootres_rem_ohi3m <- matrix(NA, nrow = nperm, ncol = 1)
+table_pst_boot_aliphatic_rem_ohi3m <- matrix(NA, nrow = nperm, ncol = 1)
+
+# Bootstrap loop
+for (i in 1:nperm) {
+  # Resample data within each population
+  resampled_data_aliphatic_rem_ohi3m <- do.call(rbind, lapply(split(aliphatic_totals_rem_ohi3m, aliphatic_totals_rem_ohi3m$Population), function(pop_data) {
+    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
+  }))
+  
+  # Fit the model to the bootstrap sample
+  model_totalaliphatics_boot_rem_ohi3m <- lme(logaliphatics ~ 1, random = ~1 | Population, data = resampled_data_aliphatic_rem_ohi3m)
+  
+  # Store variances and calculate PST for the bootstrap sample
+  aliphatic_bootpop_rem_ohi3m[i] <- as.numeric(VarCorr(model_totalaliphatics_boot_rem_ohi3m)[1])
+  aliphatic_bootres_rem_ohi3m[i] <- as.numeric(VarCorr(model_totalaliphatics_boot_rem_ohi3m)[2])
+  table_pst_boot_aliphatic_rem_ohi3m[i] <- aliphatic_bootpop_rem_ohi3m[i] / (aliphatic_bootpop_rem_ohi3m[i] + 2 * aliphatic_bootres_rem_ohi3m[i])
+}
+
+# Calculate mean and standard error of bootstrapped PST values
+mean_aliphatic_pst_rem_ohi3m <- mean(table_pst_boot_aliphatic_rem_ohi3m, na.rm = TRUE)
+se_aliphatic_pst_rem_ohi3m <- sd(table_pst_boot_aliphatic_rem_ohi3m, na.rm = TRUE) / sqrt(length(na.omit(table_pst_boot_aliphatic_rem_ohi3m)))
+pst_ci_aliphatic_rem_ohi3m <- quantile(table_pst_boot_aliphatic_rem_ohi3m, c(0.025, 0.5, 0.975))
+
+# Print bootstrapped PST mean and standard error
+print(paste("Mean Bootstrapped PST:", mean_aliphatic_pst_rem_ohi3m))
+print(paste("Standard Error Bootstrapped PST:", se_aliphatic_pst_rem_ohi3m))
+cat("95% Confidence Interval:", pst_ci_aliphatic_rem_ohi3m, "\n")
 
 # Rinse & repeat for induced defense profile
 
@@ -465,13 +720,26 @@ abline(v = 0.03, col = "black", lwd = 2, lty = "dotted")
 
 #### Total GSLs ----
 
-# load data
+#### > load data ----
 GSL_totals_ind <-  read.csv("./data/mf_means.csv") %>%
   filter(treatment == "CW") %>% # filter for the controls
   select("Population", "mf", "logGSL")%>% 
   filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
 
-# Fit the random effects model
+# no extreme values 
+GSL_totals_ind_ex_rem <-  read.csv("./data/mf_means_ex_rem.csv") %>%
+  filter(treatment == "CW") %>% # filter for the controls
+  select("Population", "mf", "logGSL")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+# no OH-I3M
+GSL_totals_ind_rem_ohi3m <-  read.csv("./data/mf_means_rem_ohi3m.csv") %>%
+  filter(treatment == "CW") %>% # filter for the controls
+  select("Population", "mf", "logGSL")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+
+#### > with extreme values ----
 
 # log total GSLs
 hist(GSL_totals_ind$logGSL)
@@ -566,7 +834,104 @@ abline(v = pst.total.ind, col = "blue", lwd = 2, lty = "solid")
 legend("topright", legend = c("95% CI Bounds", "Observed PST", "Bootstrapped Mean PST", "Observed FST"), col = c("red", "blue", "green", "black"), lty = c("dashed", "solid", "solid", "dotted"))
 abline(v = 0.03, col = "black", lwd = 2, lty = "dotted")
 
-#### total indoles #### ----
+#### > without extreme values ----
+
+# log total GSLs 
+hist(GSL_totals_ind_ex_rem$logGSL)
+
+model_totalGSL_ex_rem <- lme(logGSL ~ 1, random = ~1|Population, data = GSL_totals_ind_ex_rem)
+
+# PST for dist.r = 1
+varpop.obs.ind.ex.rem <- as.numeric(VarCorr(model_totalGSL_ex_rem)[1]) # Between-population variance
+varres.obs.ind.ex.rem <- as.numeric(VarCorr(model_totalGSL_ex_rem)[2]) # Within-population variance
+pst_ex_rem <- varpop.obs.ind.ex.rem / (varpop.obs.ind.ex.rem + (2 * varres.obs.ex.rem))
+
+# define params set up matrices
+nperm<-10000
+dist.r <- seq(0, 1, by = 0.0001)  # see expression for PST
+GSLboot.ind.ex.rem<- matrix(NA, nrow = nperm, ncol = nrow(GSL_totals_ind_ex_rem))
+MS.bootpop.ind.ex.rem<-matrix(NA,nrow=nperm,ncol=1)
+MS.bootres.ind.ex.rem<-matrix(NA,nrow=nperm,ncol=1)
+tablePSTboot.ind.ex.rem<-matrix(NA,nrow=nperm,ncol=1)
+
+# Bootstrap
+for (i in 1:nperm) {
+  # Resample within each population
+  resampled_data_totalGSLs_ind_ex_rem <- do.call(rbind, lapply(split(GSL_totals_ind_ex_rem,GSL_totals_ind_ex_rem$Population), function(pop_data) {
+    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
+  }))
+  
+  # Fit the model to the bootstrap sample
+  model_totalGSLboot_ind_ex_rem <- lme(logGSL ~ 1, random = ~1|Population, data = resampled_data_totalGSLs_ind_ex_rem)
+  
+  # Store variances and calculate PST
+  variance_components_totalGSLb_ind_ex_rem <- as.data.frame(VarCorr(model_totalGSLboot_ind_ex_rem))
+  MS.bootpop.ind.ex.rem[i] <- as.numeric(VarCorr(model_totalGSLboot_ind_ex_rem)[1]) 
+  MS.bootres.ind.ex.rem[i] <- as.numeric(VarCorr(model_totalGSLboot_ind_ex_rem)[2])
+  tablePSTboot.ind.ex.rem[i] <- MS.bootpop.ind.ex.rem[i] / (MS.bootpop.ind.ex.rem[i] + 2 * MS.bootres.ind.ex.rem[i])
+}
+
+# Calculate mean, standard error, and confidence intervals for bootstrapped PST values
+mean_PST_ind_ex_rem <- mean(tablePSTboot.ind.ex.rem, na.rm = TRUE)
+se_PST_ind_ex_rem <- sd(tablePSTboot.ind.ex.rem, na.rm = TRUE) / sqrt(length(na.omit(tablePSTboot.ind.ex.rem)))
+pst_ci_ind_ex_rem <- quantile(tablePSTboot.ind.ex.rem, c(0.025, 0.5, 0.975))
+
+cat("Bootstrap Results:\n")
+cat("Mean PST:", mean_PST_ind_ex_rem, "\n")
+cat("Standard Error:", se_PST_ind_ex_rem, "\n")
+cat("95% Confidence Interval:", pst_ci_ind_ex_rem, "\n")
+
+#### > Without OH-I3M ----
+
+# log total GSLs 
+hist(GSL_totals_ind_rem_ohi3m$logGSL)
+
+model_totalGSL_ind_rem_ohi3m <- lme(logGSL ~ 1, random = ~1|Population, data = GSL_totals_ind_rem_ohi3m)
+
+# PST for dist.r = 1
+varpop.obs.ind.rem.ohi3m <- as.numeric(VarCorr(model_totalGSL_ind_rem_ohi3m)[1]) # Between-population variance
+varres.obs.ind.rem.ind.ohi3m <- as.numeric(VarCorr(model_totalGSL_ind_rem_ohi3m)[2]) # Within-population variance
+pst_ind_rem_ohi3m <- varpop.obs.ind.rem.ohi3m / (varpop.obs.ind.rem.ohi3m + (2 * varres.obs.ind.ex.rem))
+
+# define params set up matrices
+nperm<-10000
+dist.r <- seq(0, 1, by = 0.0001)  # see expression for PST
+GSLboot.ex.ind.rem.ohi3m<- matrix(NA, nrow = nperm, ncol = nrow(GSL_totals_ind_rem_ohi3m))
+MS.bootpop.ind.rem.ohi3m <-matrix(NA,nrow=nperm,ncol=1)
+MS.bootres.ind.rem.ohi3m <-matrix(NA,nrow=nperm,ncol=1)
+tablePSTboot.ind.rem.ohi3m<-matrix(NA,nrow=nperm,ncol=1)
+
+# Bootstrap
+for (i in 1:nperm) {
+  # Resample within each population
+  resampled_data_totalGSLs_ind_rem_ohi3m <- do.call(rbind, lapply(split(GSL_totals_ind_rem_ohi3m,GSL_totals_ind_rem_ohi3m$Population), function(pop_data) {
+    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
+  }))
+  
+  # Fit the model to the bootstrap sample
+  model_totalGSLboot_ind_rem_ohi3m <- lme(logGSL ~ 1, random = ~1|Population, data = resampled_data_totalGSLs_ind_rem_ohi3m)
+  
+  # Store variances and calculate PST
+  variance_components_totalGSLb_ind_rem_ohi3m <- as.data.frame(VarCorr(model_totalGSLboot_ind_rem_ohi3m))
+  MS.bootpop.ind.rem.ohi3m[i] <- as.numeric(VarCorr(model_totalGSLboot_ind_rem_ohi3m)[1]) 
+  MS.bootres.ind.rem.ohi3m[i] <- as.numeric(VarCorr(model_totalGSLboot_ind_rem_ohi3m)[2])
+  tablePSTboot.ind.rem.ohi3m[i] <- MS.bootpop.ind.rem.ohi3m[i] / (MS.bootpop.ind.rem.ohi3m[i] + 2 * MS.bootres.ind.rem.ohi3m[i])
+}
+
+# Calculate mean, standard error, and confidence intervals for bootstrapped PST values
+mean_PST_ind_rem_ohi3m <- mean(tablePSTboot.ind.rem.ohi3m, na.rm = TRUE)
+se_PST_ind_rem_ohi3m <- sd(tablePSTboot.ind.rem.ohi3m, na.rm = TRUE) / sqrt(length(na.omit(tablePSTboot.ind.rem.ohi3m)))
+pst_ci_ind_rem_ohi3m <- quantile(tablePSTboot.ind.rem.ohi3m, c(0.025, 0.5, 0.975))
+
+cat("Bootstrap Results:\n")
+cat("Mean PST:", mean_PST_ind_rem_ohi3m, "\n")
+cat("Standard Error:", se_PST_ind_rem_ohi3m, "\n")
+cat("95% Confidence Interval:", pst_ind_ci_rem_ohi3m, "\n")
+
+
+#### total indoles  ----
+
+#### > load data ----
 
 # Read and preprocess data
 indole_totals_ind <- read.csv("./data/mf_means.csv") %>%
@@ -574,6 +939,8 @@ indole_totals_ind <- read.csv("./data/mf_means.csv") %>%
   select("Population", "mf", "totalindole", "logindoles") %>%
   filter(Population %in% c("BH", "IH", "TM2", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3")) %>%
   filter(logindoles != -Inf)
+
+#### > with extreme values ----
 
 # Plot histogram of logindoles
 hist(indole_totals_ind$logindoles)
@@ -678,6 +1045,127 @@ abline(v = pst_ci_indole_ind, col = c("red", "green", "red"), lwd = 2, lty = c("
 abline(v = pst_observed_indole_ind, col = "blue", lwd = 2, lty = "solid")
 legend("topright", legend = c("95% CI Bounds", "Observed PST", "Bootstrapped Mean PST", "Observed FST"), col = c("red", "blue", "green", "black"), lty = c("dashed", "solid", "solid", "dotted"))
 abline(v = 0.03, col = "black", lwd = 2, lty = "dotted")
+
+#### > without extreme values ----
+
+# Plot histogram of logindoles
+hist(indole_totals_ind_ex_rem$logindoles)
+
+# Boxplot to visualize logindoles by population
+ggplot(aes(x = Population, y = logindoles), data = indole_totals_ex_rem) +
+  geom_boxplot()
+
+# Fit mixed model for total indoles
+model_totalindoles_ex_rem <- lme(logindoles ~ 1, random = ~1 | Population, data = indole_totals_ex_rem)
+
+# Calculate observed variances
+varpop.obs.indole.ex.rem <- as.numeric(VarCorr(model_totalindoles_ex_rem)[1])  # Between-population variance
+varres.obs.indole.ex.rem <- as.numeric(VarCorr(model_totalindoles_ex_rem)[2])  # Within-population variance
+
+# Calculate observed PST for dist.r = 1
+pst_observed_indole_ex_rem <- varpop.obs.indole.ex.rem / (varpop.obs.indole.ex.rem + 2 * varres.obs.indole.ex.rem)
+
+# Print PST for verification
+print(paste("Observed PST:", pst_observed_indole_ex_rem))
+
+# Set bootstrap parameters
+nperm <- 1000
+dist_r <- seq(0, 1, by = 0.0001)  # Range for PST calculation
+
+# Initialize matrices for bootstrapping results
+indole_bootpop_ex_rem <- matrix(NA, nrow = nperm, ncol = 1)
+indole_bootres_ex_rem <- matrix(NA, nrow = nperm, ncol = 1)
+table_pst_boot_indole_ex_rem <- matrix(NA, nrow = nperm, ncol = 1)
+
+# Bootstrap loop
+for (i in 1:nperm) {
+  # Resample data within each population
+  resampled_data_indole_ex_rem <- do.call(rbind, lapply(split(indole_totals_ex_rem, indole_totals_ex_rem$Population), function(pop_data) {
+    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
+  }))
+  
+  # Fit the model to the bootstrap sample
+  model_totalindoles_boot_ex_rem <- lme(logindoles ~ 1, random = ~1 | Population, data = resampled_data_indole_ex_rem)
+  
+  # Store variances and calculate PST for the bootstrap sample
+  indole_bootpop_ex_rem[i] <- as.numeric(VarCorr(model_totalindoles_boot_ex_rem)[1])
+  indole_bootres_ex_rem[i] <- as.numeric(VarCorr(model_totalindoles_boot_ex_rem)[2])
+  table_pst_boot_indole_ex_rem[i] <- indole_bootpop_ex_rem[i] / (indole_bootpop_ex_rem[i] + 2 * indole_bootres_ex_rem[i])
+}
+
+# Calculate mean and standard error of bootstrapped PST values
+mean_indole_pst_ex_rem <- mean(table_pst_boot_indole_ex_rem, na.rm = TRUE)
+se_indole_pst_ex_rem <- sd(table_pst_boot_indole_ex_rem, na.rm = TRUE) / sqrt(length(na.omit(table_pst_boot_indole_ex_rem)))
+pst_ci_indole_ex_rem <- quantile(table_pst_boot_indole_ex_rem, c(0.025, 0.5, 0.975))
+
+# Print bootstrapped PST mean and standard error
+print(paste("Mean Bootstrapped PST:", mean_indole_pst))
+print(paste("Standard Error Bootstrapped PST:", se_indole_pst))
+cat("95% Confidence Interval:", pst_ci, "\n")
+
+#### > without OH-I3M ----
+
+# Plot histogram of logindoles
+hist(indole_totals_rem_ohi3m$logindoles)
+# compare to regular plot
+hist(indole_totals$logindoles)
+
+
+# Boxplot to visualize logindoles by population
+ggplot(aes(x = Population, y = logindoles), data = indole_totals_rem_ohi3m) +
+  geom_boxplot()
+# compare to regular plot
+ggplot(aes(x = Population, y = logindoles), data = indole_totals) +
+  geom_boxplot()
+
+# Fit mixed model for total indoles
+model_totalindoles_rem_ohi3m <- lme(logindoles ~ 1, random = ~1 | Population, data = indole_totals_rem_ohi3m)
+
+# Calculate observed variances
+varpop.obs.indole.rem.ohi3m <- as.numeric(VarCorr(model_totalindoles_rem_ohi3m)[1])  # Between-population variance
+varres.obs.indole.rem.ohi3m <- as.numeric(VarCorr(model_totalindoles_rem_ohi3m)[2])  # Within-population variance
+
+# Calculate observed PST for dist.r = 1
+pst_observed_indole_rem_ohi3m <- varpop.obs.indole.rem.ohi3m / (varpop.obs.indole.rem.ohi3m + 2 * varres.obs.indole.rem.ohi3m)
+
+# Print PST for verification
+print(paste("Observed PST:", pst_observed_indole_rem_ohi3m))
+
+# Set bootstrap parameters
+nperm <- 1000
+dist_r <- seq(0, 1, by = 0.0001)  # Range for PST calculation
+
+# Initialize matrices for bootstrapping results
+indole_bootpop_rem_ohi3m <- matrix(NA, nrow = nperm, ncol = 1)
+indole_bootres_rem_ohi3m <- matrix(NA, nrow = nperm, ncol = 1)
+table_pst_boot_indole_rem_ohi3m <- matrix(NA, nrow = nperm, ncol = 1)
+
+# Bootstrap loop
+for (i in 1:nperm) {
+  # Resample data within each population
+  resampled_data_indole_rem_ohi3m <- do.call(rbind, lapply(split(indole_totals_rem_ohi3m, indole_totals_rem_ohi3m$Population), function(pop_data) {
+    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
+  }))
+  
+  # Fit the model to the bootstrap sample
+  model_totalindoles_boot_rem_ohi3m <- lme(logindoles ~ 1, random = ~1 | Population, data = resampled_data_indole_rem_ohi3m)
+  
+  # Store variances and calculate PST for the bootstrap sample
+  indole_bootpop_rem_ohi3m[i] <- as.numeric(VarCorr(model_totalindoles_boot_rem_ohi3m)[1])
+  indole_bootres_rem_ohi3m[i] <- as.numeric(VarCorr(model_totalindoles_boot_rem_ohi3m)[2])
+  table_pst_boot_indole_rem_ohi3m[i] <- indole_bootpop_rem_ohi3m[i] / (indole_bootpop_rem_ohi3m[i] + 2 * indole_bootres_rem_ohi3m[i])
+}
+
+# Calculate mean and standard error of bootstrapped PST values
+mean_indole_pst_rem_ohi3m <- mean(table_pst_boot_indole_rem_ohi3m, na.rm = TRUE)
+se_indole_pst_rem_ohi3m <- sd(table_pst_boot_indole_rem_ohi3m, na.rm = TRUE) / sqrt(length(na.omit(table_pst_boot_indole_rem_ohi3m)))
+pst_ci_indole_rem_ohi3m <- quantile(table_pst_boot_indole_rem_ohi3m, c(0.025, 0.5, 0.975))
+
+# Print bootstrapped PST mean and standard error
+print(paste("Mean Bootstrapped PST:", mean_indole_pst))
+print(paste("Standard Error Bootstrapped PST:", se_indole_pst))
+cat("95% Confidence Interval:", pst_ci, "\n")
+
 
 #### aliphatics ####
 
@@ -966,25 +1454,16 @@ combined_data_aliphatics <- pairwise_qst_aliphatics %>%
 #### Calculate Qst-Fst in all dataframes ----
 
 # total GSLs
-combined_data_totalGSL$Qst_Fst <- combined_data_totalGSL$Qst - combined_data_totalGSL$Fst
-combined_data_totalGSL$Qst_Fst_abs <- abs(combined_data_totalGSL$Qst - combined_data_totalGSL$Fst)
-head(combined_data_totalGSL)
+combined_data_totalGSL$Qst_Fst <- combined_data_totalGSL$Qst/combined_data_totalGSL$Fst
 hist(combined_data_totalGSL$Qst_Fst)
-hist(combined_data_totalGSL$Qst_Fst_abs)
 
 # indoles
-combined_data_indoles$Qst_Fst <- combined_data_indoles$Qst - combined_data_indoles$Fst
-combined_data_indoles$Qst_Fst_abs <- abs(combined_data_indoles$Qst - combined_data_indoles$Fst)
-head(combined_data_indoles)
+combined_data_indoles$Qst_Fst <- combined_data_indoles$Qst/combined_data_indoles$Fst
 hist(combined_data_indoles$Qst_Fst)
-hist(combined_data_indoles$Qst_Fst_abs)
 
 # aliphatics
-combined_data_aliphatics$Qst_Fst <- combined_data_aliphatics$Qst - combined_data_aliphatics$Fst
-combined_data_aliphatics$Qst_Fst_abs <- abs(combined_data_aliphatics$Qst - combined_data_aliphatics$Fst)
-head(combined_data_aliphatics)
+combined_data_aliphatics$Qst_Fst <- combined_data_aliphatics$Qst/combined_data_aliphatics$Fst
 hist(combined_data_aliphatics$Qst_Fst)
-hist(combined_data_aliphatics$Qst_Fst_abs)
 
 ### Join with climate PC data ----
 
@@ -1127,12 +1606,12 @@ qst_fst_climate_aliphatics <- combined_data_aliphatics %>%
 
 ### Models comparing control defense Qst-Fst with PC1 and PC2 ----
 
-#### Total GSLS ----
+#### Total GSLS ~ ----
 
-# PC1
+#### > PC1 ----
 hist(qst_fst_climate_totalGSL$Qst_Fst)
 hist(qst_fst_climate_totalGSL$PC1_Diff)
-PC1_GSLtotal <- lm(Qst_Fst ~ PC1_Diff, data = qst_fst_climate_totalGSL)
+PC1_GSLtotal <- glm(Qst_Fst ~ PC1_Diff, family = Gamma, data = qst_fst_climate_totalGSL)
 
 summary(PC1_GSLtotal)  
 # slope estimate -0.037, diff than 0
@@ -1152,10 +1631,57 @@ PC1_GSLtotal_plot <- ggplot(qst_fst_climate_totalGSL, aes(x = PC1_Diff, y = Qst_
   ) +
   theme_minimal()
 
-# PC2
+PC1_GSLtotal_plot
+
+# plot the relationship
+
+PC1_GSLtotal_plot <- ggplot(qst_fst_climate_totalGSL, aes(x = PC1_Diff, y = Qst_Fst)) +
+  geom_point(color = "blue") + 
+  # geom_label(aes(label = PairID), vjust = -1) + 
+  geom_smooth(method = "lm", color = "red") + 
+  labs(
+    title = "Relationship Between Pairwise Qst-Fst and Climate PC1",
+    x = "Climate PC1",
+    y = "Pairwise Qst-Fst"
+  ) +
+  theme_minimal()
+
+PC1_GSLtotal_plot
+
+# one point seems to be driving the relationship
+
+#remove data point
+filtered_qst_fst_climate_totalGSL <- qst_fst_climate_totalGSL %>%
+  filter(Qst_Fst < 3)
+
+#make a new model
+PC1_GSLtotal_filtered <- glm(Qst_Fst ~ PC1_Diff, family = Gamma, data = filtered_qst_fst_climate_totalGSL)
+
+summary(PC1_GSLtotal_filtered)  
+
+# plot the relationship
+
+PC1_GSLtotal_plot_filtered <- ggplot(filtered_qst_fst_climate_totalGSL, aes(x = PC1_Diff, y = Qst_Fst)) +
+  geom_point(color = "blue") + 
+  # geom_label(aes(label = PairID), vjust = -1) + 
+  geom_smooth(method = "lm", color = "red") + 
+  labs(
+    title = "Relationship Between Pairwise Qst-Fst and Climate PC1",
+    x = "Climate PC1",
+    y = "Pairwise Qst-Fst"
+  ) +
+  theme_minimal()
+
+PC1_GSLtotal_plot_filtered 
+
+#calculate McFadden's R-squared for model
+R2_PC1_GSLtotal <- with(summary(PC1_GSLtotal), 1 - deviance/null.deviance)
+R2_PC1_GSLtotal
+
+#### > PC2 ----
 hist(qst_fst_climate_totalGSL$Qst_Fst)
 hist(qst_fst_climate_totalGSL$PC2_Diff)
-PC2_GSLtotal <- lm(Qst_Fst ~ PC2_Diff, data = qst_fst_climate_totalGSL)
+PC2_GSLtotal <- glm(Qst_Fst ~ PC2_Diff, family = Gamma, data = qst_fst_climate_totalGSL)
 
 summary(PC2_GSLtotal)  
 # similar relationship but not as strong
@@ -1171,12 +1697,19 @@ PC2_GSLtotal_plot <- ggplot(qst_fst_climate_totalGSL, aes(x = PC2_Diff, y = Qst_
   ) +
   theme_minimal()
 
+PC2_GSLtotal_plot
+
+#calculate McFadden's R-squared for model
+R2_PC2_indoles <- with(summary(PC2_indoles), 1 - deviance/null.deviance)
+PC2_indoles
+
+
 #### Indoles ----
 
-# PC1
+#### > PC1 ----
 hist(qst_fst_climate_indoles$Qst_Fst)
 hist(qst_fst_climate_indoles$PC1_Diff)
-PC1_indoles <- lm(Qst_Fst ~ PC1_Diff, data = qst_fst_climate_indoles)
+PC1_indoles <- glm(Qst_Fst ~ PC1_Diff, family = Gamma, data = qst_fst_climate_indoles)
 
 summary(PC1_indoles)  
 # slope estimate -0.036, sig diff from 0, higher R2 valu
@@ -1194,10 +1727,17 @@ PC1_indole_plot <- ggplot(qst_fst_climate_indoles, aes(x = PC1_Diff, y = Qst_Fst
   ) +
   theme_minimal()
 
-# PC2
+PC1_indole_plot
+
+#calculate McFadden's R-squared for model
+R2_PC1_indoles <- with(summary(PC1_indoles), 1 - deviance/null.deviance)
+R2_PC1_indoles
+
+
+#### > PC2 ----
 hist(qst_fst_climate_indoles$Qst_Fst)
 hist(qst_fst_climate_indoles$PC2_Diff)
-PC2_indoles <- lm(Qst_Fst ~ PC2_Diff, data = qst_fst_climate_indoles)
+PC2_indoles <- glm(Qst_Fst ~ PC2_Diff, family = Gamma, data = qst_fst_climate_indoles)
 
 summary(PC2_indoles)  
 # similar relationship but not as strong, sign diff tho!
@@ -1213,13 +1753,19 @@ PC2_indoles_plot <- ggplot(qst_fst_climate_indoles, aes(x = PC2_Diff, y = Qst_Fs
   ) +
   theme_minimal()
 
+PC2_indoles_plot
+
+#calculate McFadden's R-squared for model
+R2_PC2_indoles <- with(summary(PC2_indoles), 1 - deviance/null.deviance)
+R2_PC2_indoles
+
 
 #### Aliphatics ----
 
-# PC1
+#### > PC1 ----
 hist(qst_fst_climate_aliphatics$Qst_Fst)
 hist(qst_fst_climate_aliphatics$PC1_Diff)
-PC1_aliphatics <- lm(Qst_Fst ~ PC1_Diff, data = qst_fst_climate_aliphatics)
+PC1_aliphatics <- glm(Qst_Fst ~ PC1_Diff, family = Gamma, data = qst_fst_climate_aliphatics)
 
 summary(PC1_aliphatics)  
 # slope estimate -0.036, sig diff from 0, higher R2 valu
@@ -1238,6 +1784,10 @@ PC1_aliphatics_plot <- ggplot(qst_fst_climate_aliphatics, aes(x = PC1_Diff, y = 
   theme_minimal()
 
 PC1_aliphatics_plot
+
+#calculate McFadden's R-squared for model
+R2_PC1_aliphatics <- with(summary(PC1_aliphatics), 1 - deviance/null.deviance)
+R2_PC1_aliphatics
 
 # PC2
 hist(qst_fst_climate_aliphatics$Qst_Fst)

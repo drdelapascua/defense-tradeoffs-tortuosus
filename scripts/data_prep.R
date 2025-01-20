@@ -155,6 +155,18 @@ hist(x = data$logaliphatics)
 #write.csv(data, "~/GitHub/defense-tradeoffs-tortuosus/data/dl.csv")
 write.csv(data, "./data/dw.csv")
 
+### > create a df without extreme values of total gsls, aliphatics, and indoles ----
+
+plot(data$totalGSL) # no extreme values
+plot(data$totalindole) # one extreme value
+plot(data$totalaliphatic) 
+
+data_ex_rem <- data %>%
+  filter(totalindole < 700)
+
+plot(data_ex_rem$totalindole)
+
+
 ### > aggregating means ----
 
 head(data)
@@ -248,6 +260,193 @@ pop_means_long <- as.data.frame(pop_means_long)
 
 # save long version of data
 write.csv(pop_means_long, "./data/pop_means_long.csv")
+
+### make agreggates for mf means without extreme values ----
+
+### > aggregating means ----
+
+head(data_ex_rem)
+
+mf_means_ex_rem <- data_ex_rem %>% 
+  # Summarize by maternal family
+  group_by(Population, treatment, mf) %>% 
+  summarise(
+    X3MSO = mean(X3MSO_5.2),
+    OHAlkenyl = mean(OH.Alkenyl_6),
+    X4MSO = mean(X4MSO_7.1),
+    Allyl = mean(Allyl_7.4),
+    X5MSO = mean(X5MSO_10.2),
+    Butenyl = mean(Butenyl_12.1),
+    X3MT = mean(X3MT_13.6),
+    MSOO = mean(MSOO_13.8),
+    OHI3M = mean(OH.I3M_15.1),
+    X4MT = mean(X4MT._15.5),
+    Flavonol16 = mean(Flavonol_16.1),
+    I3M = mean(I3M_16.7),
+    Flavonol17 = mean(Flavonol_17.5),
+    Flavonol18 = mean(Flavonol_18.5),
+    Indole = mean(Indole_18.8),
+    totalaliphatic = mean(totalaliphatic),
+    totalindole = mean(totalindole),
+    totalGSL = mean(totalGSL),
+    logGSL = mean(logGSL),
+    logindoles = mean(logindoles),
+    logaliphatics = mean(logaliphatics),
+    biomass = mean(biomass)
+  )
+
+# Use distinct to see if additional grouping variables are present
+distinct_data <- data_ex_rem %>% select(Population, treatment, mf) %>% distinct()
+print(nrow(distinct_data)) 
+print(distinct_data)
+
+# make pop means
+pop_means_ex_rem <- mf_means_ex_rem %>% 
+  # Summarize by population
+  group_by(Population, treatment) %>% 
+  summarise(
+    GSL_X3MSO = mean(X3MSO),
+    GSL_OHAlkenyl = mean(OHAlkenyl),
+    GSL_X4MSO = mean(X4MSO),
+    GSL_Allyl = mean(Allyl),
+    GSL_X5MSO = mean(X5MSO),
+    GSL_Butenyl = mean(Butenyl),
+    GSL_X3MT = mean(X3MT),
+    GSL_MSOO = mean(MSOO),
+    GSL_OHI3M = mean(OHI3M),
+    GSL_X4MT = mean(X4MT),
+    GSL_Flavonol16 = mean(Flavonol16),
+    GSL_I3M = mean(I3M),
+    GSL_Flavonol17 = mean(Flavonol17),
+    GSL_Flavonol18 = mean(Flavonol18),
+    GSL_Indole = mean(Indole),
+    GSL_totalaliphatic = mean(totalaliphatic),
+    GSL_totalindole = mean(totalindole),
+    GSL_totalGSL = mean(totalGSL),
+    GSL_logindoles = mean(logindoles),
+    GSL_logaliphatics = mean(logaliphatics),
+    GSL_biomass = mean(biomass)
+  )
+
+head(pop_means_ex_rem)
+dim(pop_means_ex_rem)
+
+# Use distinct to see if additional grouping variables are present
+distinct_data <- data %>% select(Population, treatment, mf) %>% distinct()
+print(nrow(distinct_data)) 
+dim(pop_means)
+
+pop_means <- as.data.frame(pop_means) 
+
+# save dfs
+write.csv(mf_means_ex_rem, "./data/mf_means_ex_rem.csv")
+write.csv(pop_means_ex_rem, "./data/pop_means_ex_rem.csv")
+
+### make df with no OH-I3M ----
+
+data_rem_ohi3m <- data_ex_rem %>%
+  select(!c("OH.I3M_15.1","totalGSL","totalaliphatic","logGSL", "logindoles", "totalindole", "logaliphatics"))
+  
+# total GSLs
+head(data_rem_ohi3m)
+#add all to a col
+GSL_to_sum_rem_ohi3m <- c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "X3MT_13.6", "MSOO_13.8", "X4MT._15.5", "I3M_16.7", "Indole_18.8")
+GSL_sums_rem_ohi3m <- rowSums(data_rem_ohi3m[, GSL_to_sum_rem_ohi3m ], na.rm = TRUE)
+data_rem_ohi3m$totalGSL <- GSL_sums_rem_ohi3m 
+head(data)
+
+hist(x = data$totalGSL) # pretty normal, a little skewed left
+
+# total indolic
+indole_to_sum_rem_ohi3m <- c("I3M_16.7", "Indole_18.8")
+indole_sums_rem_ohi3m <- rowSums(data_rem_ohi3m[, indole_to_sum_rem_ohi3m], na.rm = TRUE)
+data_rem_ohi3m$totalindole <- indole_sums_rem_ohi3m 
+head(data_rem_ohi3m)
+
+hist(x = data$totalindole) # most have low ampounts of indoles, few have high amount, 
+
+# total aliphatic
+ali_to_sum_rem_ohi3m <- c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "X3MT_13.6", "MSOO_13.8", "X4MT._15.5")
+ali_sums_rem_ohi3m <- rowSums(data_rem_ohi3m[, ali_to_sum_rem_ohi3m], na.rm = TRUE)
+data_rem_ohi3m$totalaliphatic <- ali_sums_rem_ohi3m # pretty normal, a little skewed left
+head(data_rem_ohi3m)
+  
+# log transform all
+
+data_rem_ohi3m$logGSL <- log(data_rem_ohi3m$totalGSL)
+
+data_rem_ohi3m$logindoles <- log(data_rem_ohi3m$totalindole)
+
+data_rem_ohi3m$logaliphatics <- log(data_rem_ohi3m$totalaliphatic)
+
+
+hist(x = data_rem_ohi3m$logGSL)
+hist(x = data_rem_ohi3m$logindoles)
+hist(x = data_rem_ohi3m$logaliphatics)
+
+### > aggregating means ----
+
+mf_means_rem_ohi3m <- data_rem_ohi3m %>% 
+  # Summarize by maternal family
+  group_by(Population, treatment, mf) %>% 
+  summarise(
+    X3MSO = mean(X3MSO_5.2),
+    OHAlkenyl = mean(OH.Alkenyl_6),
+    X4MSO = mean(X4MSO_7.1),
+    Allyl = mean(Allyl_7.4),
+    X5MSO = mean(X5MSO_10.2),
+    Butenyl = mean(Butenyl_12.1),
+    X3MT = mean(X3MT_13.6),
+    MSOO = mean(MSOO_13.8),
+    X4MT = mean(X4MT._15.5),
+    Flavonol16 = mean(Flavonol_16.1),
+    I3M = mean(I3M_16.7),
+    Flavonol17 = mean(Flavonol_17.5),
+    Flavonol18 = mean(Flavonol_18.5),
+    Indole = mean(Indole_18.8),
+    totalaliphatic = mean(totalaliphatic),
+    totalindole = mean(totalindole),
+    totalGSL = mean(totalGSL),
+    logGSL = mean(logGSL),
+    logindoles = mean(logindoles),
+    logaliphatics = mean(logaliphatics),
+    biomass = mean(biomass)
+  )
+
+# make pop means
+pop_means_rem_ohi3m <- mf_means_rem_ohi3m %>% 
+  # Summarize by population
+  group_by(Population, treatment) %>% 
+  summarise(
+    GSL_X3MSO = mean(X3MSO),
+    GSL_OHAlkenyl = mean(OHAlkenyl),
+    GSL_X4MSO = mean(X4MSO),
+    GSL_Allyl = mean(Allyl),
+    GSL_X5MSO = mean(X5MSO),
+    GSL_Butenyl = mean(Butenyl),
+    GSL_X3MT = mean(X3MT),
+    GSL_MSOO = mean(MSOO),
+    GSL_X4MT = mean(X4MT),
+    GSL_Flavonol16 = mean(Flavonol16),
+    GSL_I3M = mean(I3M),
+    GSL_Flavonol17 = mean(Flavonol17),
+    GSL_Flavonol18 = mean(Flavonol18),
+    GSL_Indole = mean(Indole),
+    GSL_totalaliphatic = mean(totalaliphatic),
+    GSL_totalindole = mean(totalindole),
+    GSL_totalGSL = mean(totalGSL),
+    GSL_logindoles = mean(logindoles),
+    GSL_logaliphatics = mean(logaliphatics),
+    GSL_biomass = mean(biomass)
+  )
+
+head(pop_means_rem_ohi3m)
+dim(pop_means_rem_ohi3m)
+
+# save dfs
+write.csv(mf_means_rem_ohi3m, "./data/mf_means_rem_ohi3m.csv")
+write.csv(pop_means_rem_ohi3m, "./data/pop_means_rem_ohi3m.csv")
+
 
 ### Climate data ----
 
@@ -343,7 +542,7 @@ ggplot() +
   geom_text(data = pca_loadings, aes(x = PC1, y = PC2, label = variable), 
             color = "red", vjust = -0.5, size = 3) +
   # Add axis labels and title
-  labs(title = "PCA Plot with Loadings and Elevation", x = "PC1", y = "PC2", color = "Elevation") +
+  labs(title = "PCA Plot with Loadings and Elevation", x = "PC1 (79.46%)", y = "PC2 (14.91%)", color = "Elevation") +
   scale_color_gradient(low="orange", high="blue") +
   theme_minimal()
 

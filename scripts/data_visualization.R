@@ -19,7 +19,8 @@ library(viridis)
 ### > load data ----
 pop_means_long <- read.csv("./data/pop_means_long.csv") %>%
   select(-compound.type) %>%
-  select(-X)
+  filter(compound != totalGSL)
+
 head(pop_means_long)
 
 elevation_dat <- read.csv("./data/elevation.csv") %>%
