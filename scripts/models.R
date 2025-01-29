@@ -14,7 +14,7 @@ library(tidyr)
 library(ggplot2)
 
 #pull data
-data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dw.csv")
+data <- read.csv("./data/dw.csv")
 
 head(data)
 
@@ -33,7 +33,7 @@ summary(growth_totalGSL_m1)
 # model diagnostics
 plot(growth_totalGSL_m1) # scatering around 0-ish
 qqnorm(residuals(growth_totalGSL_m1))
-qqline(residuals(growth_totalGSL_m1))
+qqline(residuals(growth_totalGSL_m1))  #JG: check patterning around the qqline: it deviates towards high values, so it looks like you have extreme high values
 
 #### total indoles ----
 hist(growth_data$logindoles)
@@ -43,7 +43,7 @@ summary(growth_indoles_m1)
 # model diagnostics
 plot(growth_indoles_m1) # scatering around 0-ish
 qqnorm(residuals(growth_indoles_m1))
-qqline(residuals(growth_indoles_m1))
+qqline(residuals(growth_indoles_m1))  #JG: looks like you may have some extreme low values, and one high
 
 #### total aliphatics ----
 hist(growth_data$logaliphatics)
@@ -53,7 +53,7 @@ summary(growth_aliphatics_m1)
 # model diagnostics
 plot(growth_indoles_m1) # scatering around 0-ish
 qqnorm(residuals(growth_indoles_m1))
-qqline(residuals(growth_indoles_m1))
+qqline(residuals(growth_indoles_m1)) #JG: looks like you may have some extreme low values, and one high
 
 #### total flavonoids ----
 hist(growth_data$logflavonoids)
@@ -63,7 +63,7 @@ summary(growth_flavonoid_m1) # positive scaling, but insig
 # model diagnostics
 plot(growth_flavonoid_m1) # scatering around 0-ish
 qqnorm(residuals(growth_flavonoid_m1))
-qqline(residuals(growth_flavonoid_m1))
+qqline(residuals(growth_flavonoid_m1)) 
 
 
 # Climate & totals ----
@@ -87,7 +87,9 @@ mf_means_induced <- read.csv("./data/mf_means_with_clim.csv") %>%
 test_m1 <- lme(logGSL ~ PC1, random = ~1 | Population, data = mf_means_with_climate)
 summary(test_m1)
 
-ggplot(data = mf_means_with_climate, aes(x = PC1, y = logGSL, color = elevation, label + elevation)) + 
+#JG: DO NOT plot the ggplot geom_smooth, that is NOT the model you fit and is misleading.  Generate a line using the predictions from the model
+#also, a merge went wrong because there is elevation.x and elevation.y in the mf_means_with_climate data frame
+ggplot(data = mf_means_with_climate, aes(x = PC1, y = logGSL, color = elevation.x, label + elevation.x)) + 
   geom_point(size = 3) + 
   geom_smooth(method = "lm", se = FALSE, color = "black") + 
   theme_minimal() + 
@@ -99,7 +101,7 @@ test_m6_nore <- lm(logGSL ~ PC2, data = mf_means_with_climate)
 summary(test_m6)
 summary(test_m6_nore)
 
-ggplot(data = mf_means_with_climate, aes(x = PC2, y = logGSL, color = elevation, label + elevation)) + 
+ggplot(data = mf_means_with_climate, aes(x = PC2, y = logGSL, color = elevation.x, label + elevation.x)) + 
   geom_point(size = 3) + 
   geom_smooth(method = "lm", se = FALSE, color = "black") + 
   theme_minimal() + 
@@ -113,7 +115,7 @@ test_m2 <- lme(logindoles ~ PC1, random = ~1 | Population, data = mf_means_with_
 summary(test_m2)
 
 
-ggplot(data = mf_means_with_climate_infdrop, aes(x = PC1, y = logindoles, color = elevation, label + elevation)) + 
+ggplot(data = mf_means_with_climate_infdrop, aes(x = PC1, y = logindoles, color = elevation.x, label + elevation.x)) + 
   geom_point(size = 3) + 
   geom_smooth(method = "lm", se = FALSE, color = "black") + 
   theme_minimal() + 
@@ -125,7 +127,7 @@ test_m3_nore <- lm(logindoles ~ PC2, data = mf_means_with_climate_infdrop)
 summary(test_m3)
 summary(test_m3_nore)
 
-ggplot(data = mf_means_with_climate_infdrop, aes(x = PC2, y = logindoles, color = elevation, label + elevation)) + 
+ggplot(data = mf_means_with_climate_infdrop, aes(x = PC2, y = logindoles, color = elevation.x, label + elevation.x)) + 
   geom_point(size = 3) + 
   geom_smooth(method = "lm", se = FALSE, color = "black") + 
   theme_minimal() + 
@@ -135,7 +137,7 @@ ggplot(data = mf_means_with_climate_infdrop, aes(x = PC2, y = logindoles, color 
 test_m4 <- lme(logaliphatics ~ PC1, random = ~1 | Population, data = mf_means_with_climate)
 summary(test_m4)
 
-ggplot(data = mf_means_with_climate, aes(x = PC1, y = logaliphatics, color = elevation, label + elevation)) + 
+ggplot(data = mf_means_with_climate, aes(x = PC1, y = logaliphatics, color = elevation.x, label + elevation.x)) + 
   geom_point(size = 3) + 
   geom_smooth(method = "lm", se = FALSE, color = "black") + 
   theme_minimal() + 
@@ -147,7 +149,7 @@ test_m5_nore <- lm(logaliphatics ~ PC2, data = mf_means_with_climate)
 summary(test_m5)
 summary(test_m5_nore)
 
-ggplot(data = mf_means_with_climate, aes(x = PC2, y = logaliphatics, color = elevation, label + elevation)) + 
+ggplot(data = mf_means_with_climate, aes(x = PC2, y = logaliphatics, color = elevation.x, label + elevation.x)) + 
   geom_point(size = 3) + 
   geom_smooth(method = "lm", se = FALSE, color = "black") + 
   theme_minimal() + 
@@ -159,9 +161,17 @@ ggplot(data = mf_means_with_climate, aes(x = PC2, y = logaliphatics, color = ele
 flav_PC1 <- lmer(logflavonoids ~ PC1 + (1|Population), data = mf_means_with_climate)
 summary(flav_PC1)
 
+#JG need likelihood ratio test for significance
+flav_PC1_2 <- lmer(logflavonoids ~ (1|Population), data = mf_means_with_climate)
+anova(flav_PC1, flav_PC1_2, test = "Chi") #p=0.40
+
 ### PC2
 flav_PC2 <- lmer(logflavonoids ~ PC2 + (1|Population), data = mf_means_with_climate)
 summary(flav_PC2)
+
+flav_PC2_2 <- lmer(logflavonoids ~  (1|Population), data = mf_means_with_climate)
+
+anova(flav_PC2, flav_PC2_2, test = "Chi") #p =0.03
 
 # total shannon
 
