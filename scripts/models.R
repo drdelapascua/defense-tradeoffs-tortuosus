@@ -19,7 +19,7 @@ data <- read.csv("~/GitHub/defense-tradeoffs-tortuosus/data/dw.csv")
 head(data)
 
 growth_data <- read.csv("./data/mf_means.csv") %>%
-  select(Population, mf, treatment, biomass, logGSL, logindoles, logaliphatics) %>%
+  select(Population, mf, treatment, biomass, logGSL, logindoles, logaliphatics, logflavonoids, shannon_diversity) %>%
   filter(treatment == "C") %>%
   filter(!logindoles == "-Inf")
 
@@ -55,6 +55,16 @@ plot(growth_indoles_m1) # scatering around 0-ish
 qqnorm(residuals(growth_indoles_m1))
 qqline(residuals(growth_indoles_m1))
 
+#### total flavonoids ----
+hist(growth_data$logflavonoids)
+growth_flavonoid_m1 <- lme(logflavonoids ~ biomass, random = ~1 | Population, data = growth_data)
+summary(growth_flavonoid_m1) # positive scaling, but insig
+
+# model diagnostics
+plot(growth_flavonoid_m1) # scatering around 0-ish
+qqnorm(residuals(growth_flavonoid_m1))
+qqline(residuals(growth_flavonoid_m1))
+
 
 # Climate & totals ----
 
@@ -63,6 +73,13 @@ mf_means_with_climate <- read.csv("./data/mf_means_with_clim.csv") %>%
   filter(treatment == "C") %>%
   filter(Population != "MtSH") %>%
   filter(Population != "YO10")
+
+mf_means_induced <- read.csv("./data/mf_means_with_clim.csv") %>%
+  select(-X) %>%
+  filter(treatment == "CW") %>%
+  filter(Population != "MtSH") %>%
+  filter(Population != "YO10")
+
 
 # simple model with pop as random effect
 
@@ -135,6 +152,26 @@ ggplot(data = mf_means_with_climate, aes(x = PC2, y = logaliphatics, color = ele
   geom_smooth(method = "lm", se = FALSE, color = "black") + 
   theme_minimal() + 
   scale_color_gradient(low = "orange", high = "blue")
+
+# total flavonoids with PC1 and PC2 
+
+### PC1
+flav_PC1 <- lmer(logflavonoids ~ PC1 + (1|Population), data = mf_means_with_climate)
+summary(flav_PC1)
+
+### PC2
+flav_PC2 <- lmer(logflavonoids ~ PC2 + (1|Population), data = mf_means_with_climate)
+summary(flav_PC2)
+
+# total shannon
+
+### PC1
+shan_PC1 <- lmer(shannon_diversity ~ PC1 + (1|Population), data = mf_means_with_climate)
+summary(shan_PC1)
+
+### PC2
+shan_PC2 <- lmer(shannon_diversity ~ PC2 + (1|Population), data = mf_means_with_climate)
+summary(shan_PC2)
 
 # Question 1 ----
 
@@ -337,3 +374,32 @@ summary(x3)
 
 anova_result1 <- anova(x1)
 print(anova_result1)
+
+### Shannon Diversity ----
+
+# shannon & climate - controls
+str(mf_means_with_climate)
+
+shannon_climate_controls_1 <- lme(shannon_diversity ~ PC1, random = ~1 | Population, data = mf_means_with_climate)
+summary(shannon_climate_controls_1)
+
+shannon_climate_controls_2 <- lme(shannon_diversity ~ PC2, random = ~1 | Population, data = mf_means_with_climate)
+summary(shannon_climate_controls_2)
+
+# shannon & climate - induced
+shannon_climate_cw_1 <- lme(shannon_diversity ~ PC1, random = ~1 | Population, data = mf_means_induced)
+summary(shannon_climate_cw_1)
+
+shannon_climate_cw_2 <- lme(shannon_diversity ~ PC2, random = ~1 | Population, data = mf_means_induced)
+summary(shannon_climate_cw_2)
+
+# shannon & elevation - controls
+
+shannon_elevation_controls <- lme(shannon_diversity ~ elevation.x, random = ~1 | Population, data = mf_means_with_climate)
+summary(shannon_elevation_controls)
+
+# shannon & elevation - induced
+shannon_elevation_cw <- lme(shannon_diversity ~ elevation.x, random = ~1 | Population, data = mf_means_induced)
+summary(shannon_elevation_cw)
+
+

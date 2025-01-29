@@ -416,69 +416,6 @@ print(paste("Mean Bootstrapped PST:", mean_indole_pst_ex_rem))
 print(paste("Standard Error Bootstrapped PST:", se_indole_pst_ex_rem))
 cat("95% Confidence Interval:", pst_ci_indole_ex_rem, "\n")
 
-#### > without OH-I3M ----
-
-# Plot histogram of logindoles
-hist(indole_totals_rem_ohi3m$logindoles)
-# compare to regular plot
-hist(indole_totals$logindoles)
-
-
-# Boxplot to visualize logindoles by population
-ggplot(aes(x = Population, y = logindoles), data = indole_totals_rem_ohi3m) +
-  geom_boxplot()
-# compare to regular plot
-ggplot(aes(x = Population, y = logindoles), data = indole_totals) +
-  geom_boxplot()
-
-# Fit mixed model for total indoles
-model_totalindoles_rem_ohi3m <- lme(logindoles ~ 1, random = ~1 | Population, data = indole_totals_rem_ohi3m)
-
-# Calculate observed variances
-varpop.obs.indole.rem.ohi3m <- as.numeric(VarCorr(model_totalindoles_rem_ohi3m)[1])  # Between-population variance
-varres.obs.indole.rem.ohi3m <- as.numeric(VarCorr(model_totalindoles_rem_ohi3m)[2])  # Within-population variance
-
-# Calculate observed PST for dist.r = 1
-pst_observed_indole_rem_ohi3m <- varpop.obs.indole.rem.ohi3m / (varpop.obs.indole.rem.ohi3m + 2 * varres.obs.indole.rem.ohi3m)
-
-# Print PST for verification
-print(paste("Observed PST:", pst_observed_indole_rem_ohi3m))
-
-# Set bootstrap parameters
-nperm <- 1000
-dist_r <- seq(0, 1, by = 0.0001)  # Range for PST calculation
-
-# Initialize matrices for bootstrapping results
-indole_bootpop_rem_ohi3m <- matrix(NA, nrow = nperm, ncol = 1)
-indole_bootres_rem_ohi3m <- matrix(NA, nrow = nperm, ncol = 1)
-table_pst_boot_indole_rem_ohi3m <- matrix(NA, nrow = nperm, ncol = 1)
-
-# Bootstrap loop
-for (i in 1:nperm) {
-  # Resample data within each population
-  resampled_data_indole_rem_ohi3m <- do.call(rbind, lapply(split(indole_totals_rem_ohi3m, indole_totals_rem_ohi3m$Population), function(pop_data) {
-    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
-  }))
-  
-  # Fit the model to the bootstrap sample
-  model_totalindoles_boot_rem_ohi3m <- lme(logindoles ~ 1, random = ~1 | Population, data = resampled_data_indole_rem_ohi3m)
-  
-  # Store variances and calculate PST for the bootstrap sample
-  indole_bootpop_rem_ohi3m[i] <- as.numeric(VarCorr(model_totalindoles_boot_rem_ohi3m)[1])
-  indole_bootres_rem_ohi3m[i] <- as.numeric(VarCorr(model_totalindoles_boot_rem_ohi3m)[2])
-  table_pst_boot_indole_rem_ohi3m[i] <- indole_bootpop_rem_ohi3m[i] / (indole_bootpop_rem_ohi3m[i] + 2 * indole_bootres_rem_ohi3m[i])
-}
-
-# Calculate mean and standard error of bootstrapped PST values
-mean_indole_pst_rem_ohi3m <- mean(table_pst_boot_indole_rem_ohi3m, na.rm = TRUE)
-se_indole_pst_rem_ohi3m <- sd(table_pst_boot_indole_rem_ohi3m, na.rm = TRUE) / sqrt(length(na.omit(table_pst_boot_indole_rem_ohi3m)))
-pst_ci_indole_rem_ohi3m <- quantile(table_pst_boot_indole_rem_ohi3m, c(0.025, 0.5, 0.975))
-
-# Print bootstrapped PST mean and standard error
-print(paste("Mean Bootstrapped PST:", mean_indole_pst_rem_ohi3m))
-print(paste("Standard Error Bootstrapped PST:", se_indole_pst_ex_rem))
-cat("95% Confidence Interval:", pst_ci_ex_rem, "\n")
-
 
 #### total aliphatics ----
 
@@ -714,7 +651,255 @@ print(paste("Mean Bootstrapped PST:", mean_aliphatic_pst_rem_ohi3m))
 print(paste("Standard Error Bootstrapped PST:", se_aliphatic_pst_rem_ohi3m))
 cat("95% Confidence Interval:", pst_ci_aliphatic_rem_ohi3m, "\n")
 
-# Rinse & repeat for induced defense profile
+#### total flavonoids ----
+
+#### > load data ----
+
+#total flavonoid
+flavonoid_totals <-  read.csv("./data/mf_means.csv") %>%
+  filter(treatment == "C") %>% # filter for the controls
+  select("Population", "mf", "logflavonoids")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+flavonoid_totals_ex_rem <- read.csv("./data/mf_means_ex_rem.csv") %>%
+  filter(treatment == "C") %>%  # Filter for control treatment
+  select("Population", "mf", "totalflavonoid", "logflavonoids") %>%
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+
+#### > with extreme values ----
+
+# Fit the random effects model
+
+hist(flavonoid_totals$logflavonoids)
+
+model_totalflavonoids <- lme(logflavonoids ~ 1, random = ~1|Population, data = flavonoid_totals)
+
+# PST for dist.r = 1
+varpop.obs.flavonoid <- as.numeric(VarCorr(model_totalflavonoids)[1]) # Between-population variance
+varres.obs.flavonoid <- as.numeric(VarCorr(model_totalflavonoids)[2]) # Within-population variance
+flavonoid.pst <- varpop.obs.flavonoid / (varpop.obs.flavonoid + (2 * varres.obs.flavonoid))
+
+# define params set up matrices
+nperm<-1000
+dist.r <- seq(0, 1, by = 0.0001)  # see expression for PST
+flavonoidboot<- matrix(NA, nrow = nperm, ncol = nrow(flavonoid_totals))
+flavonoid.bootpop<-matrix(NA,nrow=nperm,ncol=1)
+flavonoid.bootres<-matrix(NA,nrow=nperm,ncol=1)
+tablePSTboot.flavonoid<-matrix(NA,nrow=nperm,ncol=1)
+
+# Bootstrap
+for (i in 1:nperm) {
+  # Resample within each population
+  resampled_data_totalflavonoid <- do.call(rbind, lapply(split(flavonoid_totals,flavonoid_totals$Population), function(pop_data) {
+    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
+  }))
+  
+  # Fit the model to the bootstrap sample
+  model_totalflavonoid.boot <- lme(logflavonoids ~ 1, random = ~1|Population, data = resampled_data_totalflavonoid)
+  
+  # Store variances and calculate PST
+  flavonoid.bootpop[i] <- as.numeric(VarCorr(model_totalflavonoid.boot)[1]) 
+  flavonoid.bootres[i] <- as.numeric(VarCorr(model_totalflavonoid.boot)[2])
+  tablePSTboot.flavonoid[i] <- flavonoid.bootpop[i] / (flavonoid.bootpop[i] + 2 * flavonoid.bootres[i])
+}
+
+# Calculate mean and standard error of bootstrapped PST values
+mean_flavonoid_PST <- mean(tablePSTboot.flavonoid, na.rm = TRUE)
+se_flavonoid_PST <- sd(tablePSTboot.flavonoid, na.rm = TRUE) / sqrt(length(na.omit(tablePSTboot.flavonoid)))
+
+# Calculate confidence intervals
+boot.quant.flavonoid <- quantile(tablePSTboot.flavonoid, c(0.025, 0.975))
+flavonoid.bootpop.min <- as.numeric(boot.quant.flavonoid[1])
+flavonoid.bootpop.max <- as.numeric(boot.quant.flavonoid[2])
+
+# plot it
+PSTobs.flavonoid <- (dist.r * varpop.obs) / ((dist.r * varpop.obs) + (2 * varres.obs))
+PSTobs.ord <- sort(PSTobs.flavonoid)
+plot(
+  dist.r, PSTobs.ord.flavonoid, type = "l", lty = "solid", lwd = 3, col = "black",
+  xlab = "r", ylab = "PST", main = "PST across 13 populations",
+  xlim = c(0, 1), ylim = c(0, 1)
+)
+legend(
+  "topleft", lty = c("solid", "dotted", "dashed", "dotted"), lwd = c(3, 2, 2, 2),
+  legend = c("PST", "95% CI", "Upper bound of 95% CI of FST"),
+  col = c("black", "grey", "black", "black")
+)
+
+
+# PSTmin and PSTmax as functions of r
+PSTmin.flavonoid <- dist.r*flavonoid.bootpop.min
+PSTmin.ord.flavonoid <- sort(PSTmin.flavonoid)
+lines(dist.r, PSTmin.ord.flavonoid, type = "l", lty = "dotted", lwd = 2, col = "grey")
+
+PSTmax.flavonoid <- dist.r * flavonoid.bootpop.max
+PSTmax.ord.flavonoid <- sort(PSTmax.flavonoid)
+lines(dist.r, PSTmax.ord.flavonoid, type = "l", lty = "dotted", lwd = 2, col = "grey")
+
+abline(h = 0.03, lty = "dotted", lwd = 2, col = "black")
+
+# Histogram plot of bootstrapped PST values with additional lines and labels
+#pst_ci_flavonoid <- quantile(tablePSTboot.flavonoid, c(0.025, 0.5, 0.975))
+#hist(tablePSTboot.flavonoid, breaks = 30, col = "lightblue", main = "Bootstrap PST Distribution",
+#     xlab = "PST", border = "black")
+#abline(v = pst_ci_flavonoid, col = c("red", "green", "red"), lwd = 2, lty = c("dashed", "solid", "dashed"))
+#abline(v = flavonoid.pst, col = "blue", lwd = 2, lty = "solid")
+#legend("topright", legend = c("95% CI Bounds", "Observed PST", "Bootstrapped Mean PST", "Observed FST"), col = c("red", "blue", "green", "black"), lty = c("dashed", "solid", "solid", "dotted"))
+#abline(v = 0.03, col = "black", lwd = 2, lty = "dotted")
+
+#### > without extreme values ----
+
+# Plot histogram of logflavonoids
+hist(flavonoid_totals_ex_rem$logflavonoids)
+hist(flavonoid_totals$logflavonoids)
+
+# Boxplot to visualize logflavonoids by population
+ggplot(aes(x = Population, y = logflavonoids), data = flavonoid_totals_ex_rem) +
+  geom_boxplot()
+
+# normal data for comparison
+ggplot(aes(x = Population, y = logflavonoids), data = flavonoid_totals_ex_rem) +
+  geom_boxplot()
+
+# Fit mixed model for total flavonoids
+model_totalflavonoids_ex_rem <- lme(logflavonoids ~ 1, random = ~1 | Population, data = flavonoid_totals_ex_rem)
+
+# Calculate observed variances
+varpop.obs.flavonoid.ex.rem <- as.numeric(VarCorr(model_totalflavonoids_ex_rem)[1])  # Between-population variance
+varres.obs.flavonoid.ex.rem <- as.numeric(VarCorr(model_totalflavonoids_ex_rem)[2])  # Within-population variance
+
+# Calculate observed PST for dist.r = 1
+pst_observed_flavonoid_ex_rem <- varpop.obs.flavonoid.ex.rem / (varpop.obs.flavonoid.ex.rem + 2 * varres.obs.flavonoid.ex.rem)
+
+# Print PST for verification
+print(paste("Observed PST:", pst_observed_flavonoid_ex_rem))
+
+# Set bootstrap parameters
+nperm <- 1000
+dist_r <- seq(0, 1, by = 0.0001)  # Range for PST calculation
+
+# Initialize matrices for bootstrapping results
+flavonoid_bootpop_ex_rem <- matrix(NA, nrow = nperm, ncol = 1)
+flavonoid_bootres_ex_rem <- matrix(NA, nrow = nperm, ncol = 1)
+table_pst_boot_flavonoid_ex_rem <- matrix(NA, nrow = nperm, ncol = 1)
+
+# Bootstrap loop
+for (i in 1:nperm) {
+  # Resample data within each population
+  resampled_data_flavonoid_ex_rem <- do.call(rbind, lapply(split(flavonoid_totals_ex_rem, flavonoid_totals_ex_rem$Population), function(pop_data) {
+    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
+  }))
+  
+  # Fit the model to the bootstrap sample
+  model_totalflavonoids_boot_ex_rem <- lme(logflavonoids ~ 1, random = ~1 | Population, data = resampled_data_flavonoid_ex_rem)
+  
+  # Store variances and calculate PST for the bootstrap sample
+  flavonoid_bootpop_ex_rem[i] <- as.numeric(VarCorr(model_totalflavonoids_boot_ex_rem)[1])
+  flavonoid_bootres_ex_rem[i] <- as.numeric(VarCorr(model_totalflavonoids_boot_ex_rem)[2])
+  table_pst_boot_flavonoid_ex_rem[i] <- flavonoid_bootpop_ex_rem[i] / (flavonoid_bootpop_ex_rem[i] + 2 * flavonoid_bootres_ex_rem[i])
+}
+
+# Calculate mean and standard error of bootstrapped PST values
+mean_flavonoid_pst_ex_rem <- mean(table_pst_boot_flavonoid_ex_rem, na.rm = TRUE)
+se_flavonoid_pst_ex_rem <- sd(table_pst_boot_flavonoid_ex_rem, na.rm = TRUE) / sqrt(length(na.omit(table_pst_boot_flavonoid_ex_rem)))
+pst_ci_flavonoid_ex_rem <- quantile(table_pst_boot_flavonoid_ex_rem, c(0.025, 0.5, 0.975))
+
+# Print bootstrapped PST mean and standard error
+print(paste("Mean Bootstrapped PST:", mean_flavonoid_pst_ex_rem))
+print(paste("Standard Error Bootstrapped PST:", se_flavonoid_pst_ex_rem))
+cat("95% Confidence Interval:", pst_ci_flavonoid_ex_rem, "\n")
+
+
+# Shannon diversity ----
+
+
+#### > load data ----
+
+shannon_totals <-  read.csv("./data/mf_means.csv") %>%
+  filter(treatment == "C") %>% # filter for the controls
+  select("Population", "mf", "shannon_diversity")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+str(shannon_totals)
+
+#### > with extreme values ----
+
+# Fit the random effects model
+
+model_shannon <- lme(shannon_diversity ~ 1, random = ~1|Population, data = shannon_totals)
+
+
+as.numeric(VarCorr(model_shannon)[1]) 
+
+# PST for dist.r = 1
+varpop.obs.shannon <- as.numeric(VarCorr(model_shannon)[1]) # Between-population variance
+                                
+varres.obs.shannon <- as.numeric(VarCorr(model_shannon)[2]) # Within-population variance
+shannon.pst <- varpop.obs.shannon / (varpop.obs.shannon + (2 * varres.obs.shannon))
+
+print(shannon.pst)
+
+# define params set up matrices
+nperm<-1000
+dist.r <- seq(0, 1, by = 0.0001)  # see expression for PST
+shannonboot<- matrix(NA, nrow = nperm, ncol = nrow(shannon_totals))
+shannon.bootpop<-matrix(NA,nrow=nperm,ncol=1)
+shannon.bootres<-matrix(NA,nrow=nperm,ncol=1)
+tablePSTboot.shannon<-matrix(NA,nrow=nperm,ncol=1)
+
+# Bootstrap
+for (i in 1:nperm) {
+  # Resample within each population
+  resampled_data_shannon <- do.call(rbind, lapply(split(shannon_totals, shannon_totals$Population), function(pop_data) {
+    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
+  }))
+  
+  # Fit the model to the bootstrap sample
+  model_shannon.boot <- lme(shannon_diversity ~ 1, random = ~1|Population, data = resampled_data_shannon)
+  
+  # Store variances and calculate PST
+  shannon.bootpop[i] <- as.numeric(VarCorr(model_shannon.boot)[1]) 
+  shannon.bootres[i] <- as.numeric(VarCorr(model_shannon.boot)[2])
+  tablePSTboot.shannon[i] <- shannon.bootpop[i] / (shannon.bootpop[i] + 2 * shannon.bootres[i])
+}
+
+# Calculate mean and standard error of bootstrapped PST values
+mean_shannon_PST <- mean(tablePSTboot.shannon, na.rm = TRUE)
+se_shannon_PST <- sd(tablePSTboot.shannon, na.rm = TRUE) / sqrt(length(na.omit(tablePSTboot.flavonoid)))
+
+# Calculate confidence intervals
+boot.quant.shannon <- quantile(tablePSTboot.shannon, c(0.025, 0.975))
+shannon.bootpop.min <- as.numeric(boot.quant.shannon[1])
+shannon.bootpop.max <- as.numeric(boot.quant.shannon[2])
+
+# plot it
+varpop.obs.shannon / (varpop.obs.shannon + (2 * varres.obs.shannon))
+PSTobs.shannon <- (dist.r * varpop.obs.shannon) / ((dist.r * varpop.obs.shannon) + (2 * varres.obs.shannon))
+PSTobs.ord <- sort(PSTobs.shannon)
+plot(
+  dist.r, PSTobs.shannon, type = "l", lty = "solid", lwd = 3, col = "black",
+  xlab = "r", ylab = "PST", main = "PST across 13 populations",
+  xlim = c(0, 1), ylim = c(0, 1)
+)
+legend(
+  "topleft", lty = c("solid", "dotted", "dashed", "dotted"), lwd = c(3, 2, 2, 2),
+  legend = c("PST", "95% CI", "Upper bound of 95% CI of FST"),
+  col = c("black", "grey", "black", "black")
+)
+
+
+# PSTmin and PSTmax as functions of r
+PSTmin.shannon <- dist.r*shannon.bootpop.min
+PSTmin.ord.shannon <- sort(PSTmin.shannon)
+lines(dist.r, PSTmin.ord.shannon, type = "l", lty = "dotted", lwd = 2, col = "grey")
+
+PSTmax.shannon <- dist.r * shannon.bootpop.max
+PSTmax.ord.shannon <- sort(PSTmax.shannon)
+lines(dist.r, PSTmax.ord.shannon, type = "l", lty = "dotted", lwd = 2, col = "grey")
+
+abline(h = 0.03, lty = "dotted", lwd = 2, col = "black")
+
 
 # Induced defenses ----
 
@@ -1264,6 +1449,176 @@ abline(v = aliphatic.pst.ind, col = "blue", lwd = 2, lty = "solid")
 legend("topright", legend = c("95% CI Bounds", "Observed PST", "Bootstrapped Mean PST", "Observed FST"), col = c("red", "blue", "green", "black"), lty = c("dashed", "solid", "solid", "dotted"))
 abline(v = 0.03, col = "black", lwd = 2, lty = "dotted")
 
+#### flavonoids ----
+
+#### > load data ----
+
+#total flavonoid
+flavonoid_totals_ind <-  read.csv("./data/mf_means.csv") %>%
+  filter(treatment == "CW") %>% # filter for the controls
+  select("Population", "mf", "logflavonoids")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+flavonoid_totals_ex_rem_ind <- read.csv("./data/mf_means_ex_rem.csv") %>%
+  filter(treatment == "CW") %>%  # Filter for control treatment
+  select("Population", "mf", "totalflavonoid", "logflavonoids") %>%
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+#### shannon diversity ----
+
+shannon_totals_ind <-  read.csv("./data/mf_means.csv") %>%
+  filter(treatment == "CW") %>% # filter for the controls
+  select("Population", "mf", "shannon_diversity")%>% 
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3"))
+
+str(shannon_totals_ind)
+
+#### > with extreme values ----
+
+# Fit the random effects model
+
+model_shannon_ind <- lme(shannon_diversity ~ 1, random = ~1|Population, data = shannon_totals_ind)
+
+# PST for dist.r = 1
+varpop.obs.shannon.ind <- as.numeric(VarCorr(model_shannon_ind)[1]) # Between-population variance
+
+varres.obs.shannon.ind <- as.numeric(VarCorr(model_shannon_ind)[2]) # Within-population variance
+shannon.pst.ind <- varpop.obs.shannon.ind / (varpop.obs.shannon.ind + (2 * varres.obs.shannon.ind))
+
+print(shannon.pst.ind)
+
+# define params set up matrices
+nperm<-1000
+dist.r <- seq(0, 1, by = 0.0001)  # see expression for PST
+shannonboot<- matrix(NA, nrow = nperm, ncol = nrow(shannon_totals))
+shannon.bootpop<-matrix(NA,nrow=nperm,ncol=1)
+shannon.bootres<-matrix(NA,nrow=nperm,ncol=1)
+tablePSTboot.shannon<-matrix(NA,nrow=nperm,ncol=1)
+
+# Bootstrap
+for (i in 1:nperm) {
+  # Resample within each population
+  resampled_data_shannon <- do.call(rbind, lapply(split(shannon_totals, shannon_totals$Population), function(pop_data) {
+    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
+  }))
+  
+  # Fit the model to the bootstrap sample
+  model_shannon.boot <- lme(shannon_diversity ~ 1, random = ~1|Population, data = resampled_data_shannon)
+  
+  # Store variances and calculate PST
+  shannon.bootpop[i] <- as.numeric(VarCorr(model_shannon.boot)[1]) 
+  shannon.bootres[i] <- as.numeric(VarCorr(model_shannon.boot)[2])
+  tablePSTboot.shannon[i] <- shannon.bootpop[i] / (shannon.bootpop[i] + 2 * shannon.bootres[i])
+}
+
+# Calculate mean and standard error of bootstrapped PST values
+mean_shannon_PST <- mean(tablePSTboot.shannon, na.rm = TRUE)
+se_shannon_PST <- sd(tablePSTboot.shannon, na.rm = TRUE) / sqrt(length(na.omit(tablePSTboot.flavonoid)))
+
+# Calculate confidence intervals
+boot.quant.shannon <- quantile(tablePSTboot.shannon, c(0.025, 0.975))
+shannon.bootpop.min <- as.numeric(boot.quant.shannon[1])
+shannon.bootpop.max <- as.numeric(boot.quant.shannon[2])
+
+# plot it
+varpop.obs.shannon / (varpop.obs.shannon + (2 * varres.obs.shannon))
+PSTobs.shannon <- (dist.r * varpop.obs.shannon) / ((dist.r * varpop.obs.shannon) + (2 * varres.obs.shannon))
+PSTobs.ord <- sort(PSTobs.shannon)
+plot(
+  dist.r, PSTobs.shannon, type = "l", lty = "solid", lwd = 3, col = "black",
+  xlab = "r", ylab = "PST", main = "PST across 13 populations",
+  xlim = c(0, 1), ylim = c(0, 1)
+)
+legend(
+  "topleft", lty = c("solid", "dotted", "dashed", "dotted"), lwd = c(3, 2, 2, 2),
+  legend = c("PST", "95% CI", "Upper bound of 95% CI of FST"),
+  col = c("black", "grey", "black", "black")
+)
+
+
+# PSTmin and PSTmax as functions of r
+PSTmin.shannon <- dist.r*shannon.bootpop.min
+PSTmin.ord.shannon <- sort(PSTmin.shannon)
+lines(dist.r, PSTmin.ord.shannon, type = "l", lty = "dotted", lwd = 2, col = "grey")
+
+PSTmax.shannon <- dist.r * shannon.bootpop.max
+PSTmax.ord.shannon <- sort(PSTmax.shannon)
+lines(dist.r, PSTmax.ord.shannon, type = "l", lty = "dotted", lwd = 2, col = "grey")
+
+abline(h = 0.03, lty = "dotted", lwd = 2, col = "black")
+
+
+#### > with extreme values ----
+
+# Fit the random effects model
+
+hist(flavonoid_totals_ind$logflavonoids)
+
+model_totalflavonoids_ind <- lme(logflavonoids ~ 1, random = ~1|Population, data = flavonoid_totals_ind)
+
+# PST for dist.r = 1
+varpop.obs.flavonoid.ind <- as.numeric(VarCorr(model_totalflavonoids_ind)[1]) # Between-population variance
+varres.obs.flavonoid.ind <- as.numeric(VarCorr(model_totalflavonoids_ind)[2]) # Within-population variance
+flavonoid.pst.ind <- varpop.obs.flavonoid.ind / (varpop.obs.flavonoid.ind + (2 * varres.obs.flavonoid.ind))
+
+# define params set up matrices
+nperm<-1000
+dist.r <- seq(0, 1, by = 0.0001)  # see expression for PST
+flavonoidboot.ind<- matrix(NA, nrow = nperm, ncol = nrow(flavonoid_totals_ind))
+flavonoid.bootpop.ind<-matrix(NA,nrow=nperm,ncol=1)
+flavonoid.bootres.ind<-matrix(NA,nrow=nperm,ncol=1)
+tablePSTboot.flavonoid.ind<-matrix(NA,nrow=nperm,ncol=1)
+
+# Bootstrap
+for (i in 1:nperm) {
+  # Resample within each population
+  resampled_data_totalflavonoid.ind <- do.call(rbind, lapply(split(flavonoid_totals_ind,flavonoid_totals_ind$Population), function(pop_data) {
+    pop_data[sample(nrow(pop_data), nrow(pop_data), replace = TRUE), ]
+  }))
+  
+  # Fit the model to the bootstrap sample
+  model_totalflavonoid.boot.ind <- lme(logflavonoids ~ 1, random = ~1|Population, data = resampled_data_totalflavonoid.ind)
+  
+  # Store variances and calculate PST
+  flavonoid.bootpop.ind[i] <- as.numeric(VarCorr(model_totalflavonoid.boot.ind)[1]) 
+  flavonoid.bootres.ind[i] <- as.numeric(VarCorr(model_totalflavonoid.boot.ind)[2])
+  tablePSTboot.flavonoid.ind[i] <- flavonoid.bootpop.ind[i] / (flavonoid.bootpop.ind[i] + 2 * flavonoid.bootres.ind[i])
+}
+
+# Calculate mean and standard error of bootstrapped PST values
+mean_flavonoid_PST_ind <- mean(tablePSTboot.flavonoid.ind, na.rm = TRUE)
+se_flavonoid_PST_ind <- sd(tablePSTboot.flavonoid.ind, na.rm = TRUE) / sqrt(length(na.omit(tablePSTboot.flavonoid.ind)))
+
+# Calculate confidence intervals
+boot.quant.flavonoid.ind <- quantile(tablePSTboot.flavonoid.ind, c(0.025, 0.975))
+flavonoid.bootpop.min.ind <- as.numeric(boot.quant.flavonoid.ind[1])
+flavonoid.bootpop.max.ind <- as.numeric(boot.quant.flavonoid.ind[2])
+
+# plot it
+plot(
+  dist.r, PSTobs.ord.flavonoid, type = "l", lty = "solid", lwd = 3, col = "black",
+  xlab = "r", ylab = "PST", main = "PST across 13 populations",
+  xlim = c(0, 1), ylim = c(0, 1)
+)
+legend(
+  "topleft", lty = c("solid", "dotted", "dashed", "dotted"), lwd = c(3, 2, 2, 2),
+  legend = c("PST", "95% CI", "Upper bound of 95% CI of FST"),
+  col = c("black", "grey", "black", "black")
+)
+
+
+# PSTmin and PSTmax as functions of r
+PSTmin.flavonoid <- dist.r*flavonoid.bootpop.min
+PSTmin.ord.flavonoid <- sort(PSTmin.flavonoid)
+lines(dist.r, PSTmin.ord.flavonoid, type = "l", lty = "dotted", lwd = 2, col = "grey")
+
+PSTmax.flavonoid <- dist.r * flavonoid.bootpop.max
+PSTmax.ord.flavonoid <- sort(PSTmax.flavonoid)
+lines(dist.r, PSTmax.ord.flavonoid, type = "l", lty = "dotted", lwd = 2, col = "grey")
+
+abline(h = 0.03, lty = "dotted", lwd = 2, col = "black")
+
+
 ### Pairwise Pst ----
 
 #### Total GSLs ----
@@ -1396,6 +1751,87 @@ for (i in 1:nrow(population_pairs)) {
   pairwise_qst_aliphatics <- rbind(pairwise_qst_aliphatics, data.frame(Pop1 = pair_aliphatics$Pop1, Pop2 = pair_aliphatics$Pop2, Qst = qst_aliphatics))
 }
 
+#### Total flavonoids ----
+
+#  Calculate mean and variance within each population
+flavonoid_population_stats <- flavonoid_totals %>%
+  group_by(Population) %>%
+  summarise(
+    PopMean = mean(logflavonoids),
+    PopVar = var(logflavonoids),
+    .groups = 'drop'
+  )
+
+# Get pairwise combinations of populations
+population_pairs <- expand.grid(Pop1 = unique(flavonoid_population_stats$Population),
+                                Pop2 = unique(flavonoid_population_stats$Population)) %>%
+  filter(Pop1 != Pop2)
+
+# Initialize a data frame to store pairwise Qst results
+pairwise_qst_flavonoids <- data.frame(Pop1 = character(), Pop2 = character(), Qst = numeric(), stringsAsFactors = FALSE)
+
+# Loop through each pair to calculate Qst
+# Loop through each pair to calculate Qst
+for (i in 1:nrow(population_pairs)) {
+  pair_flavonoids <- population_pairs[i, ]
+  pop1_stats_flavonoids <- flavonoid_population_stats %>% filter(Population == pair_flavonoids$Pop1)
+  pop2_stats_flavonoids <- flavonoid_population_stats %>% filter(Population == pair_flavonoids$Pop2)
+  
+  # Calculate between-population variance for this pair
+  mean_of_pop_means_flavonoids <- mean(c(pop1_stats_flavonoids$PopMean, pop2_stats_flavonoids$PopMean))
+  between_pop_var_flavonoids <- sum((c(pop1_stats_flavonoids$PopMean, pop2_stats_flavonoids$PopMean) - mean_of_pop_means_flavonoids)^2) / 1 # 1 degree of freedom for two populations
+  
+  # Calculate within-population variance
+  within_pop_var_flavonoids <- mean(c(pop1_stats_flavonoids$PopVar, pop2_stats_flavonoids$PopVar))
+  
+  # Calculate Qst
+  qst_flavonoids <- between_pop_var_flavonoids / (between_pop_var_flavonoids + 2*within_pop_var_flavonoids)
+  
+  # Store the result
+  pairwise_qst_flavonoids <- rbind(pairwise_qst_flavonoids, data.frame(Pop1 = pair_flavonoids$Pop1, Pop2 = pair_flavonoids$Pop2, Qst = qst_flavonoids))
+}
+
+#### Shannon's  diversity ----
+
+#  Calculate mean and variance within each population
+shannon_population_stats <- shannon_totals %>%
+  group_by(Population) %>%
+  summarise(
+    PopMean = mean(shannon_diversity),
+    PopVar = var(shannon_diversity),
+    .groups = 'drop'
+  )
+
+# Get pairwise combinations of populations
+population_pairs <- expand.grid(Pop1 = unique(shannon_population_stats$Population),
+                                Pop2 = unique(shannon_population_stats$Population)) %>%
+  filter(Pop1 != Pop2)
+
+# Initialize a data frame to store pairwise Qst results
+pairwise_qst_shannon <- data.frame(Pop1 = character(), Pop2 = character(), Qst = numeric(), stringsAsFactors = FALSE)
+
+# Loop through each pair to calculate Qst
+# Loop through each pair to calculate Qst
+for (i in 1:nrow(population_pairs)) {
+  pair_shannon <- population_pairs[i, ]
+  pop1_stats_shannon <- shannon_population_stats %>% filter(Population == pair_shannon$Pop1)
+  pop2_stats_shannon <- shannon_population_stats %>% filter(Population == pair_shannon$Pop2)
+  
+  # Calculate between-population variance for this pair
+  mean_of_pop_means_shannon <- mean(c(pop1_stats_shannon$PopMean, pop2_stats_shannon$PopMean))
+  between_pop_var_shannon <- sum((c(pop1_stats_shannon$PopMean, pop2_stats_shannon$PopMean) - mean_of_pop_means_shannon)^2) / 1 # 1 degree of freedom for two populations
+  
+  # Calculate within-population variance
+  within_pop_var_shannon <- mean(c(pop1_stats_shannon$PopVar, pop2_stats_shannon$PopVar))
+  
+  # Calculate Qst
+  qst_shannon <- between_pop_var_shannon / (between_pop_var_shannon + 2*within_pop_var_shannon)
+  
+  # Store the result
+  pairwise_qst_shannon <- rbind(pairwise_qst_shannon, data.frame(Pop1 = pair_shannon$Pop1, Pop2 = pair_shannon$Pop2, Qst = qst_shannon))
+}
+
+
 ### Genetic data/Fst ----
 
 #### Load Genetic data ----
@@ -1424,6 +1860,18 @@ pairwise_qst_aliphatics <- pairwise_qst_aliphatics %>%
   mutate(PairID = paste(sort(c(Pop1, Pop2)), collapse = "-")) %>%
   ungroup()
 
+# flavonoids
+pairwise_qst_flavonoids <- pairwise_qst_flavonoids %>% 
+  rowwise() %>%
+  mutate(PairID = paste(sort(c(Pop1, Pop2)), collapse = "-")) %>%
+  ungroup()
+
+# shannon diversity
+pairwise_qst_shannon <- pairwise_qst_shannon %>% 
+  rowwise() %>%
+  mutate(PairID = paste(sort(c(Pop1, Pop2)), collapse = "-")) %>%
+  ungroup()
+
 #### Normalize pair order in Fst data ----
 
 fst <- fst %>%
@@ -1437,33 +1885,61 @@ fst <- fst %>%
 combined_data_totalGSL <- pairwise_qst_totalGSL %>%
   inner_join(fst, by = "PairID") %>%
   select(-c("Pop1.y", "Pop2.y", "PairID")) %>%
-  select("Pop1" = Pop1.x, "Pop2" = Pop2.x, "Qst" = Qst, "Fst" = Fst)
+  select("Pop1" = Pop1.x, "Pop2" = Pop2.x, "Pst" = Qst, "Fst" = Fst)
 
 # indoles
 combined_data_indoles <- pairwise_qst_indoles %>%
   inner_join(fst, by = "PairID") %>%
   select(-c("Pop1.y", "Pop2.y", "PairID")) %>%
-  select("Pop1" = Pop1.x, "Pop2" = Pop2.x, "Qst" = Qst, "Fst" = Fst)
+  select("Pop1" = Pop1.x, "Pop2" = Pop2.x, "Pst" = Qst, "Fst" = Fst)
 
 # aliphatics
 combined_data_aliphatics <- pairwise_qst_aliphatics %>%
   inner_join(fst, by = "PairID") %>%
   select(-c("Pop1.y", "Pop2.y", "PairID")) %>%
-  select("Pop1" = Pop1.x, "Pop2" = Pop2.x, "Qst" = Qst, "Fst" = Fst)
+  select("Pop1" = Pop1.x, "Pop2" = Pop2.x, "Pst" = Qst, "Fst" = Fst)
 
-#### Calculate Qst-Fst in all dataframes ----
+# flavonoids
+combined_data_flavonoids <- pairwise_qst_flavonoids %>%
+  inner_join(fst, by = "PairID") %>%
+  select(-c("Pop1.y", "Pop2.y", "PairID")) %>%
+  select("Pop1" = Pop1.x, "Pop2" = Pop2.x, "Pst" = Qst, "Fst" = Fst)
+
+# shannon diversity
+combined_data_shannon <- pairwise_qst_shannon %>%
+  inner_join(fst, by = "PairID") %>%
+
+#### Calculate Qst/Fst in all dataframes ----
 
 # total GSLs
-combined_data_totalGSL$Qst_Fst <- combined_data_totalGSL$Qst/combined_data_totalGSL$Fst
-hist(combined_data_totalGSL$Qst_Fst)
+combined_data_totalGSL$Pst_Fst <- combined_data_totalGSL$Pst/combined_data_totalGSL$Fst
+hist(combined_data_totalGSL$Pst_Fst)
+combined_data_totalGSL$log_Pst_Fst <- log(combined_data_totalGSL$Pst_Fst)
+hist(combined_data_totalGSL$log_Pst_Fst)
 
 # indoles
-combined_data_indoles$Qst_Fst <- combined_data_indoles$Qst/combined_data_indoles$Fst
-hist(combined_data_indoles$Qst_Fst)
+combined_data_indoles$Pst_Fst <- combined_data_indoles$Pst/combined_data_indoles$Fst
+hist(combined_data_indoles$Pst_Fst)
+combined_data_indoles$log_Pst_Fst <- log(combined_data_indoles$Pst_Fst)
+hist(combined_data_indoles$log_Pst_Fst)
 
 # aliphatics
-combined_data_aliphatics$Qst_Fst <- combined_data_aliphatics$Qst/combined_data_aliphatics$Fst
-hist(combined_data_aliphatics$Qst_Fst)
+combined_data_aliphatics$Pst_Fst <- combined_data_aliphatics$Pst/combined_data_aliphatics$Fst
+hist(combined_data_aliphatics$Pst_Fst)
+combined_data_aliphatics$log_Pst_Fst <- log(combined_data_aliphatics$Pst_Fst)
+hist(combined_data_aliphatics$log_Pst_Fst)
+
+# flavonoids
+combined_data_flavonoids$Pst_Fst <- combined_data_flavonoids$Pst/combined_data_flavonoids$Fst
+hist(combined_data_flavonoids$Pst_Fst)
+combined_data_flavonoids$log_Pst_Fst <- log(combined_data_flavonoids$Pst_Fst)
+hist(combined_data_flavonoids$log_Pst_Fst)
+
+# shannon
+combined_data_shannon$Pst_Fst <- combined_data_shannon$Pst/combined_data_shannon$Fst
+hist(combined_data_shannon$Pst_Fst)
+combined_data_shannon$log_Pst_Fst <- log(combined_data_shannon$Pst_Fst)
+hist(combined_data_shannon$log_Pst_Fst)
 
 ### Join with climate PC data ----
 
@@ -1525,8 +2001,8 @@ pairwise_climate_differences <- climate_pop_pairs %>%
     ),
     # elevation
     elevation_Diff = abs(
-      climate_data %>% filter(Population == Pop1) %>% pull(elevation) -
-        climate_data %>% filter(Population == Pop2) %>% pull(elevation)
+      climate_data %>% filter(Population == Pop1) %>% pull(elevation.x) -
+        climate_data %>% filter(Population == Pop2) %>% pull(elevation.x)
     ), 
     # PC1
     PC1_Diff = abs(
@@ -1604,38 +2080,69 @@ qst_fst_climate_aliphatics <- combined_data_aliphatics %>%
     Pop2 = Pop2.x
   )
 
-### Models comparing control defense Qst-Fst with PC1 and PC2 ----
+# flavonoids
+
+head(combined_data_flavonoids)
+dim(combined_data_flavonoids)
+combined_data_flavonoids  <- combined_data_flavonoids %>%
+  rowwise() %>%
+  mutate(PairID = paste(sort(c(Pop1, Pop2)), collapse = "-")) %>%
+  ungroup()
+
+qst_fst_climate_flavonoids <- combined_data_flavonoids %>%
+  inner_join(pairwise_climate_differences, by = "PairID", relationship = "many-to-many") %>%
+  select(-c("Pop1.y", "Pop2.y")) %>%
+  distinct(PairID, .keep_all = TRUE) %>%
+  rename(
+    Pop1 = Pop1.x,
+    Pop2 = Pop2.x
+  )
+
+# shannon
+
+combined_data_shannon  <- combined_data_shannon %>%
+  rowwise() %>%
+  mutate(PairID = paste(sort(c(Pop1, Pop2)), collapse = "-")) %>%
+  ungroup()
+
+qst_fst_climate_shannon <- combined_data_shannon %>%
+  inner_join(pairwise_climate_differences, by = "PairID", relationship = "many-to-many") %>%
+  select(-c("Pop1.y", "Pop2.y")) %>%
+  distinct(PairID, .keep_all = TRUE) %>%
+  rename(
+    Pop1 = Pop1.x,
+    Pop2 = Pop2.x
+  )
+
+### Models comparing control defense Pst-Fst with PC1 and PC2 ----
 
 #### Total GSLS ~ ----
 
 #### > PC1 ----
-hist(qst_fst_climate_totalGSL$Qst_Fst)
+hist(qst_fst_climate_totalGSL$Pst_Fst)
 hist(qst_fst_climate_totalGSL$PC1_Diff)
-PC1_GSLtotal <- glm(Qst_Fst ~ PC1_Diff, family = Gamma, data = qst_fst_climate_totalGSL)
+PC1_GSLtotal <- glm(Pst_Fst ~ PC1_Diff, family = Gamma, data = qst_fst_climate_totalGSL)
 
 summary(PC1_GSLtotal)  
-# slope estimate -0.037, diff than 0
-# y-axis is Qst-Fst, smaller/negative values mean Qst is smaller than Fst, or unifying selection (similar genotype campared to phenotype) where larger/positive values are the opposite (genotype is similar but traits have diverged more)
-# As PC1 goes down, totalGSL goes up. PC1 associated with prepcip, dryer and hotter values lower wetter cooler values, 
-  
+
 # plot the relationship
 
-PC1_GSLtotal_plot <- ggplot(qst_fst_climate_totalGSL, aes(x = PC1_Diff, y = Qst_Fst)) +
+PC1_GSLtotal_plot <- ggplot(qst_fst_climate_totalGSL, aes(x = PC1_Diff, y = Pst_Fst)) +
   geom_point(color = "blue") + 
  # geom_label(aes(label = PairID), vjust = -1) + 
   geom_smooth(method = "lm", color = "red") + 
   labs(
     title = "Relationship Between Pairwise Qst-Fst and Climate PC1",
     x = "Climate PC1",
-    y = "Pairwise Qst-Fst"
+    y = "Pairwise Pst-Fst"
   ) +
   theme_minimal()
 
 PC1_GSLtotal_plot
 
 # plot the relationship
-
-PC1_GSLtotal_plot <- ggplot(qst_fst_climate_totalGSL, aes(x = PC1_Diff, y = Qst_Fst)) +
+#need to figure out how to make plot that are my models
+PC1_GSLtotal_plot <- ggplot(qst_fst_climate_totalGSL, aes(x = PC1_Diff, y = log_Pst_Fst)) +
   geom_point(color = "blue") + 
   # geom_label(aes(label = PairID), vjust = -1) + 
   geom_smooth(method = "lm", color = "red") + 
@@ -1652,10 +2159,10 @@ PC1_GSLtotal_plot
 
 #remove data point
 filtered_qst_fst_climate_totalGSL <- qst_fst_climate_totalGSL %>%
-  filter(Qst_Fst < 3)
+  filter(Pst_Fst < 3)
 
 #make a new model
-PC1_GSLtotal_filtered <- glm(Qst_Fst ~ PC1_Diff, family = Gamma, data = filtered_qst_fst_climate_totalGSL)
+PC1_GSLtotal_filtered <- glm(Pst_Fst ~ PC1_Diff, family = Gamma, data = filtered_qst_fst_climate_totalGSL)
 
 summary(PC1_GSLtotal_filtered)  
 
@@ -1789,13 +2296,13 @@ PC1_aliphatics_plot
 R2_PC1_aliphatics <- with(summary(PC1_aliphatics), 1 - deviance/null.deviance)
 R2_PC1_aliphatics
 
-# PC2
-hist(qst_fst_climate_aliphatics$Qst_Fst)
+#### > PC2 ----
+hist(qst_fst_climate_aliphatics$Pst_Fst)
 hist(qst_fst_climate_aliphatics$PC2_Diff)
 
-PC2_aliphatics <- lm(Qst_Fst ~ PC2_Diff, data = qst_fst_climate_aliphatics)
+PC2_aliphatics <- lm(Pst_Fst ~ PC2_Diff, data = qst_fst_climate_aliphatics)
 
-summary(PC2_indoles)  
+summary(PC2_aliphatics)  
 # similar relationship but not as strong
 
 # Plot the relationship
@@ -1809,11 +2316,51 @@ PC2_aliphatics_plot <- ggplot(qst_fst_climate_aliphatics, aes(x = PC2_Diff, y = 
   ) +
   theme_minimal()
 
+####  Flavonoids ----
+
+#### > PC1 ----
+hist(qst_fst_climate_indoles$Qst_Fst)
+hist(qst_fst_climate_indoles$PC1_Diff)
+PC1_flavonoids <- glm(Pst_Fst ~ PC1_Diff, family = Gamma, data = qst_fst_climate_flavonoids)
+
+summary(PC1_flavonoids)  
+
+#### > PC2 ----
+hist(qst_fst_climate_indoles$Qst_Fst)
+hist(qst_fst_climate_indoles$PC2_Diff)
+PC2_flavonoids <- glm(Pst_Fst ~ PC2_Diff, family = Gamma, data = qst_fst_climate_flavonoids)
+#sig positive
+
+summary(PC2_flavonoids)  
+# marginially sig, positive
+
+
+#### Shannon diversity ----
+
+#### > PC 1 ----
+hist(qst_fst_climate_shannon$Pst_Fst)
+hist(qst_fst_climate_indoles$PC1_Diff)
+PC1_shannon <- glm(Pst_Fst ~ PC1_Diff, family = Gamma, data = qst_fst_climate_shannon)
+
+summary(PC1_shannon)  
+str(qst_fst_climate_shannon)
+str(qst_fst_climate_flavonoids)
+
+# significant 
+
+#### > PC 2 ----
+hist(qst_fst_climate_shannon$Pst_Fst)
+hist(qst_fst_climate_indoles$PC2_Diff)
+PC2_shannon <- glm(Pst_Fst ~ PC2_Diff, family = Gamma, data = qst_fst_climate_shannon)
+
+summary(PC2_shannon)  
+# significant 
+
+
 ### Create correlational matrix ----
 
 #### total GSLs ----
 
-subset_totalGSL <- qst_fst_climate_totalGSL[, c("Qst", "Fst", "Qst_Fst", "Qst_Fst_abs", "cwd_Diff", "ppt_mm_Diff", "pck_Diff", "snw_Diff", "tmin_Diff", "tmax_Diff", "latitude_Diff", "longitude_Diff", "PC1_Diff", "PC2_Diff")]
 
 # Initialize empty matrices to store results
 n_vars_totalGSL <- ncol(subset_totalGSL)

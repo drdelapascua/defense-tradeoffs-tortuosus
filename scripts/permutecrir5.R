@@ -24,9 +24,9 @@
 # libararies
 library(tidyverse)
 
-# prep script for above format
+# prep script for above format ----
 
-#total gsl
+# > total gsl ----
 GSL_totals <-  read.csv("./data/mf_means.csv") %>%
   select(fam = "Population", trt = "treatment",  rep = "mf", res = "logGSL") %>%
   # filter out pop with no replication - note: write up rationale in methods
@@ -45,7 +45,7 @@ GSL_totals <-  read.csv("./data/mf_means.csv") %>%
   select(-rep_numeric) 
 str(GSL_totals)
   
-#total aliphatic
+# > total aliphatic ----
 aliphatic_totals <-  read.csv("./data/mf_means.csv") %>%
   select(fam = "Population", trt = "treatment",  rep = "mf", res = "logaliphatics") %>%
   # filter out pop with no replication
@@ -65,7 +65,7 @@ aliphatic_totals <-  read.csv("./data/mf_means.csv") %>%
 
 str(aliphatic_totals)
 
-#total indole
+# > total indole ----
 indole_totals <-  read.csv("./data/mf_means.csv") %>%
   select(fam = "Population", trt = "treatment",  rep = "mf", res = "logindoles") %>%
   # filter out pop with no replication
@@ -86,6 +86,52 @@ indole_totals <-  read.csv("./data/mf_means.csv") %>%
 
 
 str(indole_totals)
+
+
+# > total flavonoid ----
+flavonoid_totals <-  read.csv("./data/mf_means.csv") %>%
+  select(fam = "Population", trt = "treatment",  rep = "mf", res = "logflavonoids") %>%
+  # filter out pop with no replication
+  filter(!fam %in% c("MtSH", "YO10")) %>% 
+  mutate(fam = as.numeric(as.integer(as.factor(fam)))) %>%
+  # make C = 1 , CW = 2 
+  mutate(trt = case_when(
+    trt == "C" ~ 1,
+    trt == "CW" ~ 2,
+  )) %>%
+  # make each unique mf its own number chronologically
+  group_by(fam) %>%
+  mutate(rep_numeric = as.integer(factor(rep))) %>%
+  ungroup() %>%
+  mutate(rep = as.numeric(rep_numeric)) %>%
+  select(-rep_numeric) %>%
+  filter_all(all_vars(is.finite(.)))
+
+
+str(flavonoid_totals)
+
+
+# > shannon diversity ----
+shannon_means <-  read.csv("./data/mf_means.csv") %>%
+  select(fam = "Population", trt = "treatment",  rep = "mf", res = "shannon_diversity") %>%
+  # filter out pop with no replication
+  filter(!fam %in% c("MtSH", "YO10")) %>% 
+  mutate(fam = as.numeric(as.integer(as.factor(fam)))) %>%
+  # make C = 1 , CW = 2 
+  mutate(trt = case_when(
+    trt == "C" ~ 1,
+    trt == "CW" ~ 2,
+  )) %>%
+  # make each unique mf its own number chronologically
+  group_by(fam) %>%
+  mutate(rep_numeric = as.integer(factor(rep))) %>%
+  ungroup() %>%
+  mutate(rep = as.numeric(rep_numeric)) %>%
+  select(-rep_numeric) %>%
+  filter_all(all_vars(is.finite(.)))
+
+
+str(shannon_means)
 
 # This script has a toggle (see "gonormal" below) for two options in cases
 # in which negative resistances are likely to arise in the randomization
@@ -120,13 +166,13 @@ gonormal=1
 
 # ***********************************************************************************
 
-# set some parameters
+# set some parameters ----
 q=numfams-1
 tcrit=qt(0.975,numfams)           # critical value of t statistic with numfams degrees of freedom
 chi2critlo=qchisq(.975,numfams-1) # critical lower value of chi-square statistic with numfams-1 degrees of freedom     
 chi2critup=qchisq(.025,numfams-1) # critical upper value of chi-square statistic with numfams-1 degrees of freedom   
 
-data = aliphatic_totals
+data = shannon_means
 attach(data)  # column headings in datafile must be fam, trt, rep, res
 
 Nc=Nd=Cest=Dest=Cc=Cd=matrix(0,numfams,1) # making matrices for each variable (see below for what they are)
@@ -397,8 +443,8 @@ ggplot(plot_data, aes(x = ConstitutiveResistance, y = InducedResistance)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "grey") +  # Dashed horizontal line at y = 0
   geom_smooth(method = "lm", color = "red", se = FALSE) + # Linear regression line
   labs(
-    title = "Relationship Between Constitutive and Induced Resistance",
-    x = "Constitutive Resistance (Cest)",
-    y = "Induced Resistance (Iest)"
+    title = "Relationship Between Constitutive and Induced Shannon's Diversity",
+    x = "Constitutive Shannon's H ",
+    y = "Induced Shannon's H "
   ) +
   theme_minimal()    

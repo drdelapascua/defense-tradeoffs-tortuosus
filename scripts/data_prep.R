@@ -120,7 +120,7 @@ indole_sums <- rowSums(data[, indole_to_sum], na.rm = TRUE)
 data$totalindole <- indole_sums 
 head(data)
 
-hist(x = data$totalindole) # most have low ampounts of indoles, few have high amount, 
+hist(x = data$totalindole) # most have low amounts of indoles, few have high amount, 
 
 # total aliphatic
 ali_to_sum <- c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "X3MT_13.6", "MSOO_13.8", "X4MT._15.5")
@@ -130,7 +130,13 @@ head(data)
 
 hist(x = data$totalaliphatic) # more normal
 
-plot(x = data$totalaliphatic, y = data$totalindole)
+
+# total flavonoids
+flav_to_sum <- c("Flavonol_16.1", "Flavonol_17.5", "Flavonol_18.5")
+flav_sums <- rowSums(data[, flav_to_sum], na.rm = TRUE)
+data$totalflavonoid <- flav_sums # pretty normal, a little skewed left
+
+hist(x = data$totalflavonoid) # skewed left
 
 # Assess distributions
 hist(x = data$totalGSL) # pretty normal, a little skewed left
@@ -145,14 +151,45 @@ data$logindoles <- log(data$totalindole)
 
 data$logaliphatics <- log(data$totalaliphatic)
 
+data$logflavonoids <- log(data$totalflavonoid)
 
+# all way more normally distributed
 hist(x = data$logGSL)
 hist(x = data$logindoles)
 hist(x = data$logaliphatics)
+hist(x = data$logflavonoids)
+
+### > Calculate Shannon diversity across compounds ----
+
+# make a df for calculating shannon diversity
+
+shannon_df <- data %>%
+  select("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "X3MT_13.6", "MSOO_13.8", "OH.I3M_15.1", "X4MT._15.5", "Flavonol_16.1", "I3M_16.7", "Flavonol_17.5", "Flavonol_18.5", "Indole_18.8") 
+
+# Function to calculate Shannon Diversity Index
+shannon_diversity <- function(profile) {
+  # Calculate the proportion of each compound
+  proportions <- profile / sum(profile)
+  
+  # Shannon diversity formula: -sum(p_i * log(p_i))
+  H <- -sum(proportions * log(proportions), na.rm = TRUE)
+  
+  return(H)
+}
+
+# Apply the function to each plant (row)
+diversity_scores <- apply(shannon_df, 1, shannon_diversity)
+
+# Print the diversity scores for each plant
+print(diversity_scores)
+
+# add to the big table
+data$shannon_diversity <- diversity_scores
+
+hist(data$shannon_diversity) # pretty normal!
 
 ### > save big data table ----
 
-#write.csv(data, "~/GitHub/defense-tradeoffs-tortuosus/data/dl.csv")
 write.csv(data, "./data/dw.csv")
 
 ### > create a df without extreme values of total gsls, aliphatics, and indoles ----
@@ -175,6 +212,7 @@ mf_means <- data %>%
   # Summarize by maternal family
   group_by(Population, treatment, mf) %>% 
   summarise(
+    biomass = mean(biomass),
     X3MSO = mean(X3MSO_5.2),
     OHAlkenyl = mean(OH.Alkenyl_6),
     X4MSO = mean(X4MSO_7.1),
@@ -193,10 +231,12 @@ mf_means <- data %>%
     totalaliphatic = mean(totalaliphatic),
     totalindole = mean(totalindole),
     totalGSL = mean(totalGSL),
+    totalflavonoid = mean(totalflavonoid),
     logGSL = mean(logGSL),
     logindoles = mean(logindoles),
     logaliphatics = mean(logaliphatics),
-    biomass = mean(biomass)
+    logflavonoids = mean(logflavonoids),
+    shannon_diversity = mean(shannon_diversity)
   )
 
 # Use distinct to see if additional grouping variables are present
@@ -209,6 +249,7 @@ pop_means <- mf_means %>%
   # Summarize by population
   group_by(Population, treatment) %>% 
   summarise(
+    GSL_biomass = mean(biomass),
     GSL_X3MSO = mean(X3MSO),
     GSL_OHAlkenyl = mean(OHAlkenyl),
     GSL_X4MSO = mean(X4MSO),
@@ -227,10 +268,13 @@ pop_means <- mf_means %>%
     GSL_totalaliphatic = mean(totalaliphatic),
     GSL_totalindole = mean(totalindole),
     GSL_totalGSL = mean(totalGSL),
+    GSL_totalflavonoid = mean(totalflavonoid),
+    GSL_logGSL = mean(logGSL),
     GSL_logindoles = mean(logindoles),
     GSL_logaliphatics = mean(logaliphatics),
-    GSL_biomass = mean(biomass)
-  )
+    GSL_logflavonoids = mean(logflavonoids),
+    GSL_shannon_diversity = mean(shannon_diversity)
+    )
 
 head(pop_means)
 dim(pop_means)
@@ -292,7 +336,10 @@ mf_means_ex_rem <- data_ex_rem %>%
     logGSL = mean(logGSL),
     logindoles = mean(logindoles),
     logaliphatics = mean(logaliphatics),
-    biomass = mean(biomass)
+    biomass = mean(biomass),
+    totalflavonoid = mean(totalflavonoid),
+    logflavonoids = mean(logflavonoids),
+    shannon_diversity = mean(shannon_diversity)
   )
 
 # Use distinct to see if additional grouping variables are present
@@ -325,7 +372,10 @@ pop_means_ex_rem <- mf_means_ex_rem %>%
     GSL_totalGSL = mean(totalGSL),
     GSL_logindoles = mean(logindoles),
     GSL_logaliphatics = mean(logaliphatics),
-    GSL_biomass = mean(biomass)
+    GSL_biomass = mean(biomass),
+    GSL_totalflavonoid = mean(totalflavonoid),
+    GSL_logflavonoids = mean(logflavonoids),
+    GSL_shannon_diversity = mean(shannon_diversity)
   )
 
 head(pop_means_ex_rem)
@@ -370,6 +420,13 @@ ali_to_sum_rem_ohi3m <- c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4",
 ali_sums_rem_ohi3m <- rowSums(data_rem_ohi3m[, ali_to_sum_rem_ohi3m], na.rm = TRUE)
 data_rem_ohi3m$totalaliphatic <- ali_sums_rem_ohi3m # pretty normal, a little skewed left
 head(data_rem_ohi3m)
+
+# total flavonoid
+flav_to_sum_rem_ohi3m <- c("X3MSO_5.2", "OH.Alkenyl_6", "X4MSO_7.1", "Allyl_7.4", "X5MSO_10.2", "Butenyl_12.1", "X3MT_13.6", "MSOO_13.8", "X4MT._15.5")
+flav_sums_rem_ohi3m <- rowSums(data_rem_ohi3m[, flav_to_sum_rem_ohi3m], na.rm = TRUE)
+data_rem_ohi3m$totalflavonoid <- flav_sums_rem_ohi3m # pretty normal, a little skewed left
+
+
   
 # log transform all
 
@@ -378,6 +435,8 @@ data_rem_ohi3m$logGSL <- log(data_rem_ohi3m$totalGSL)
 data_rem_ohi3m$logindoles <- log(data_rem_ohi3m$totalindole)
 
 data_rem_ohi3m$logaliphatics <- log(data_rem_ohi3m$totalaliphatic)
+
+data_rem_ohi3m$logflavonoid <- log(data_rem_ohi3m$totalflavonoid)
 
 
 hist(x = data_rem_ohi3m$logGSL)
@@ -410,7 +469,10 @@ mf_means_rem_ohi3m <- data_rem_ohi3m %>%
     logGSL = mean(logGSL),
     logindoles = mean(logindoles),
     logaliphatics = mean(logaliphatics),
-    biomass = mean(biomass)
+    biomass = mean(biomass), 
+    totalflavonoid = mean(totalflavonoid),
+    logflavonoids = mean(logflavonoid), 
+    shannon_diversity = mean(shannon_diversity)
   )
 
 # make pop means
@@ -508,8 +570,6 @@ locs_pc = cbind(my_climate, pc_data)
 pc_data_with_id <- cbind(ID = locs_pc$id, pc_data[, c("PC1", "PC2")])
 
 loadings = data.frame(varnames=rownames(pc$rotation), pc$rotation)
-
-autoplot(pc, loadings = TRUE, loadings.label = TRUE, loadings.colour = "grey", loadings.label.colour = "black")
 
 # Extract PCA scores for the first two principal components
 pca_scores <- as.data.frame(pc$x[, 1:2])
