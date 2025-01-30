@@ -80,82 +80,125 @@ mf_means_induced <- read.csv("./data/mf_means_with_clim.csv") %>%
   filter(Population != "MtSH") %>%
   filter(Population != "YO10")
 
-
 # simple model with pop as random effect
 
-# Total GSLs
-test_m1 <- lme(logGSL ~ PC1, random = ~1 | Population, data = mf_means_with_climate)
-summary(test_m1)
+# > Total GSLs ----
+# total gsl and pc1
+GSL_PC1 <- lmer(logGSL ~ PC1 +  (1|Population), data = mf_means_with_climate)
+summary(GSL_PC1)
 
-#JG: DO NOT plot the ggplot geom_smooth, that is NOT the model you fit and is misleading.  Generate a line using the predictions from the model
-#also, a merge went wrong because there is elevation.x and elevation.y in the mf_means_with_climate data frame
-ggplot(data = mf_means_with_climate, aes(x = PC1, y = logGSL, color = elevation.x, label + elevation.x)) + 
+GSL_PC1_2 <- lmer(logGSL ~  (1|Population), data = mf_means_with_climate)
+
+anova(GSL_PC1, GSL_PC1_2, test = "Chi") #p=0.04
+
+
+# Generate predictions from the lme model
+mf_means_with_climate$predicted_logGSL <- predict(GSL_PC1)  # Fixed effects only
+
+mf_means_with_climate <- mf_means_with_climate %>%
+  arrange(PC1)
+
+# Generate new data for smooth predictions
+new_PC1 <- expand.grid(
+  PC1 = seq(min(mf_means_with_climate$PC1), max(mf_means_with_climate$PC1), length.out = 100),
+  Population = unique(mf_means_with_climate$Population) # Keep all Population levels!
+)
+
+# Predict using both fixed + random effects
+new_PC1$predicted_logGSL <- predict(GSL_PC1, newdata = new_PC1, re.form = NULL)  
+
+
+# Merge elevation data so each Population has its elevation value
+elevation_data <- mf_means_with_climate %>% 
+  select(Population, elevation.x) %>% 
+  distinct()  # Keep unique Population-elevation pairs
+
+new_PC1 <- new_PC1 %>% left_join(elevation_data, by = "Population")
+
+# Plot again with group-specific fitted lines
+ggplot(data = mf_means_with_climate, aes(x = PC1, y = logGSL, color = elevation.x)) + 
   geom_point(size = 3) + 
-  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  geom_line(data = new_PC1, aes(x = PC1, y = predicted_logGSL, group = Population, color = elevation.x), 
+            linewidth = 1) +  
   theme_minimal() + 
-  scale_color_gradient(low = "orange", high = "blue")
+  scale_color_gradient(low = "orange", high = "blue")  # Adjust color scale
 
 # Total GSLs & PC2
-test_m6 <- lmer(logGSL ~ PC2 + (1|Population), data = mf_means_with_climate)
-test_m6_nore <- lm(logGSL ~ PC2, data = mf_means_with_climate)
-summary(test_m6)
-summary(test_m6_nore)
+GSL_PC2 <- lmer(logGSL ~ PC2 +  (1|Population), data = mf_means_with_climate)
+summary(GSL_PC1)
 
-ggplot(data = mf_means_with_climate, aes(x = PC2, y = logGSL, color = elevation.x, label + elevation.x)) + 
-  geom_point(size = 3) + 
-  geom_smooth(method = "lm", se = FALSE, color = "black") + 
-  theme_minimal() + 
-  scale_color_gradient(low = "orange", high = "blue")
+GSL_PC2_2 <- lmer(logGSL ~  (1|Population), data = mf_means_with_climate)
+
+anova(GSL_PC2, GSL_PC2_2, test = "Chi") #p=0.47
+
+# > Total indoles ----
 
 # Total indoles & PC 1
 # drop inf
 mf_means_with_climate_infdrop <- mf_means_with_climate %>%
   filter_all(all_vars(. != -Inf))
-test_m2 <- lme(logindoles ~ PC1, random = ~1 | Population, data = mf_means_with_climate_infdrop)
-summary(test_m2)
 
+indole_PC1 <- lmer(logindoles ~ PC1 + (1|Population), data = mf_means_with_climate_infdrop)
+summary(indole_PC1)
 
-ggplot(data = mf_means_with_climate_infdrop, aes(x = PC1, y = logindoles, color = elevation.x, label + elevation.x)) + 
-  geom_point(size = 3) + 
-  geom_smooth(method = "lm", se = FALSE, color = "black") + 
-  theme_minimal() + 
-  scale_color_gradient(low = "orange", high = "blue")
+indole_PC1_2 <- lmer(logindoles ~  (1|Population), data = mf_means_with_climate_infdrop)
+
+anova(indole_PC1, indole_PC1_2, test = "Chi") #p=0.57
+
 
 # Total indoles & PC 2
-test_m3 <- lmer(logindoles ~ PC2 + (1|Population), data = mf_means_with_climate_infdrop)
-test_m3_nore <- lm(logindoles ~ PC2, data = mf_means_with_climate_infdrop)
-summary(test_m3)
-summary(test_m3_nore)
+indole_PC2 <- lmer(logindoles ~ PC2 + (1|Population), data = mf_means_with_climate_infdrop)
+summary(indole_PC2)
 
-ggplot(data = mf_means_with_climate_infdrop, aes(x = PC2, y = logindoles, color = elevation.x, label + elevation.x)) + 
+indole_PC2_2 <- lmer(logindoles ~ (1|Population), data = mf_means_with_climate_infdrop)
+
+anova(indole_PC2, indole_PC2_2, test = "Chi") #p=0.68
+
+# > Total aliphatics ----
+aliphatics_PC1 <- lmer(logaliphatics ~ PC1 + (1|Population), data = mf_means_with_climate)
+summary(aliphatics_PC1)
+
+aliphatics_PC1_2 <- lmer(logaliphatics ~ (1|Population), data = mf_means_with_climate)
+
+anova(aliphatics_PC1, aliphatics_PC1_2, test = "Chi") #p=0.05 - significant
+
+
+# Generate new data for smooth predictions
+new_PC1_aliphatics_PC1 <- expand.grid(
+  PC1 = seq(min(mf_means_with_climate$PC1), max(mf_means_with_climate$PC1), length.out = 100),
+  Population = unique(mf_means_with_climate$Population) # Keep all Population levels!
+)
+
+
+# Predict using both fixed + random effects
+new_PC1_aliphatics_PC1$predicted_aliphatics_PC1 <- predict(aliphatics_PC1 , newdata = new_PC1_aliphatics_PC1, re.form = NULL)  
+
+# Merge elevation data so each Population has its elevation value
+elevation_data <- mf_means_with_climate %>% 
+  select(Population, elevation.x) %>% 
+  distinct()  # Keep unique Population-elevation pairs
+
+new_PC1_aliphatics_PC1  <- new_PC1_aliphatics_PC1 %>% left_join(elevation_data, by = "Population")
+
+# Plot again with group-specific fitted lines
+ggplot(data = mf_means_with_climate, aes(x = PC1, y = logaliphatics, color = elevation.x)) + 
   geom_point(size = 3) + 
-  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  geom_line(data = new_PC1, aes(x = PC1, y = predicted_aliphatics_PC1, group = Population, color = elevation.x), 
+            linewidth = 1) +  
   theme_minimal() + 
-  scale_color_gradient(low = "orange", high = "blue")
+  scale_color_gradient(low = "orange", high = "blue")  # Adjust color scale
 
-# Total log aliphatics
-test_m4 <- lme(logaliphatics ~ PC1, random = ~1 | Population, data = mf_means_with_climate)
-summary(test_m4)
-
-ggplot(data = mf_means_with_climate, aes(x = PC1, y = logaliphatics, color = elevation.x, label + elevation.x)) + 
-  geom_point(size = 3) + 
-  geom_smooth(method = "lm", se = FALSE, color = "black") + 
-  theme_minimal() + 
-  scale_color_gradient(low = "orange", high = "blue")
 
 # Total log aliphatics & PC2
-test_m5 <- lmer(logaliphatics ~ PC2 + (1|Population), data = mf_means_with_climate)
-test_m5_nore <- lm(logaliphatics ~ PC2, data = mf_means_with_climate)
-summary(test_m5)
-summary(test_m5_nore)
+aliphatics_PC2 <- lmer(logaliphatics ~ PC2 + (1|Population), data = mf_means_with_climate)
+summary(aliphatics_PC2)
 
-ggplot(data = mf_means_with_climate, aes(x = PC2, y = logaliphatics, color = elevation.x, label + elevation.x)) + 
-  geom_point(size = 3) + 
-  geom_smooth(method = "lm", se = FALSE, color = "black") + 
-  theme_minimal() + 
-  scale_color_gradient(low = "orange", high = "blue")
+aliphatics_PC2_2 <- lmer(logaliphatics ~ (1|Population), data = mf_means_with_climate)
 
-# total flavonoids with PC1 and PC2 
+anova(aliphatics_PC2, aliphatics_PC2_2, test = "Chi") #p=0.66
+
+
+# > Total flavonoids ----
 
 ### PC1
 flav_PC1 <- lmer(logflavonoids ~ PC1 + (1|Population), data = mf_means_with_climate)
@@ -173,15 +216,52 @@ flav_PC2_2 <- lmer(logflavonoids ~  (1|Population), data = mf_means_with_climate
 
 anova(flav_PC2, flav_PC2_2, test = "Chi") #p =0.03
 
-# total shannon
+# Generate new data for smooth predictions
+new_PC2_flavonoid <- expand.grid(
+  PC2 = seq(min(mf_means_with_climate$PC2), max(mf_means_with_climate$PC2), length.out = 100),
+  Population = unique(mf_means_with_climate$Population) # Keep all Population levels!
+)
+
+
+# Predict using both fixed + random effects
+new_PC2_flavonoid$predicted_flavonoid_PC2 <- predict(flav_PC2 , newdata = new_PC2_flavonoid, re.form = NULL)  
+
+
+# Merge elevation data so each Population has its elevation value
+elevation_data <- mf_means_with_climate %>% 
+  select(Population, elevation.x) %>% 
+  distinct()  # Keep unique Population-elevation pairs
+
+
+
+new_PC2_flavonoid  <- new_PC2_flavonoid %>% left_join(elevation_data, by = "Population")
+
+# Plot again with group-specific fitted lines
+ggplot(data = mf_means_with_climate, aes(x = PC2, y = logflavonoids, color = elevation.x)) + 
+  geom_point(size = 3) + 
+  geom_line(data = new_PC2_flavonoid, aes(x = PC2, y = predicted_flavonoid_PC2, group = Population, color = elevation.x), 
+            linewidth = 1) +  
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")  # Adjust color scale
+
+
+# > total shannon ----
 
 ### PC1
 shan_PC1 <- lmer(shannon_diversity ~ PC1 + (1|Population), data = mf_means_with_climate)
 summary(shan_PC1)
 
+shan_PC1_2 <- lmer(shannon_diversity ~ + (1|Population), data = mf_means_with_climate)
+
+anova(shan_PC1, shan_PC1_2, test = "Chi") #p =0.42
+
 ### PC2
 shan_PC2 <- lmer(shannon_diversity ~ PC2 + (1|Population), data = mf_means_with_climate)
 summary(shan_PC2)
+
+shan_PC2_2 <- lmer(shannon_diversity ~ + (1|Population), data = mf_means_with_climate)
+
+anova(shan_PC2, shan_PC2_2, test = "Chi") #p =0.47
 
 # Question 1 ----
 
