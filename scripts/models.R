@@ -7,11 +7,13 @@
 #libraries
 library(lme4)
 library(nlme)
+library(lmerTest)
 library(Matrix)
 library(emmeans)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(vegan)
 
 #pull data
 data <- read.csv("./data/dw.csv")
@@ -65,47 +67,393 @@ plot(growth_flavonoid_m1) # scatering around 0-ish
 qqnorm(residuals(growth_flavonoid_m1))
 qqline(residuals(growth_flavonoid_m1)) 
 
-
 # Climate & totals ----
 
+# laod data
+
+# pop means
+pop_means_with_climate <- read.csv("./data/pop_means_with_clim.csv") %>%
+  select(-X) %>%
+  filter(treatment == "C") %>% 
+  filter(is.finite(pop_means_with_climate$GSL_logindoles))
+  
+
+str(pop_means_with_climate)
+
+pop_means_induced <- read.csv("./data/pop_means_with_clim.csv") %>%
+  select(-X) %>%
+  filter(treatment == "CW")
+
+# mf means 
 mf_means_with_climate <- read.csv("./data/mf_means_with_clim.csv") %>%
   select(-X) %>%
-  filter(treatment == "C") %>%
-  filter(Population != "MtSH") %>%
-  filter(Population != "YO10")
+  filter(treatment == "C") 
 
-mf_means_induced <- read.csv("./data/mf_means_with_clim.csv") %>%
-  select(-X) %>%
-  filter(treatment == "CW") %>%
-  filter(Population != "MtSH") %>%
-  filter(Population != "YO10")
+# > Models ----
 
-# simple model with pop as random effect
+# total gsl and pc1
+hist(pop_means_with_climate$GSL_logGSL)
+GSL_contemporary <- lm(GSL_logGSL ~ contemporary_PC1 + contemporary_PC2, data = pop_means_with_climate)
+GSL_historic <- lm(GSL_logGSL ~ historic_PC1 + historic_PC2, data = pop_means_with_climate)
+
+summary(GSL_historic) # PC1 & PC2 p > 0.05
+summary(GSL_contemporary) # PC1 & PC2 p > 0.05
+
+# log indoles and pcs
+hist(pop_means_with_climate$GSL_logindoles)
+
+pop_means_with_climate <- pop_means_with_climate 
+  
+
+str(pop_means_with_climate)
+
+indole_contemporary <- lm(GSL_logindoles ~ contemporary_PC1 + contemporary_PC2, data = pop_means_with_climate)
+indole_historic <- glm(GSL_logindoles ~ historic_PC1 + historic_PC2, data = pop_means_with_climate)
+
+summary(indole_historic) # PC1 & PC2 p > 0.05
+summary(indole_contemporary) # PC1 & PC2 p > 0.05
+
+# aliphatic and pc1
+str(pop_means_with_climate)
+
+aliphatic_contemporary <- lm(GSL_logaliphatics ~ contemporary_PC1 + contemporary_PC2, data = pop_means_with_climate)
+aliphatic_historic <- glm(GSL_logaliphatics ~ historic_PC1 + historic_PC2, data = pop_means_with_climate)
+
+summary(aliphatic_historic) # PC1 & PC2 p > 0.05
+summary(aliphatic_contemporary) # PC1 & PC2 p > 0.05
+
+
+
+# flavonoid and pc1
+
+# aliphatic and pc1
+str(pop_means_with_climate)
+
+flavonoid_contemporary <- lm(GSL_logflavonoids ~ contemporary_PC1 + contemporary_PC2, data = pop_means_with_climate)
+flavonoid_historic <- lm(GSL_logflavonoids ~ historic_PC1 + historic_PC2, data = pop_means_with_climate)
+
+summary(flavonoid_historic) # PC1 & PC2 p > 0.05
+summary(flavonoid_contemporary) # PC1 & PC2 p > 0.05
+
+
+# shannon and PCs
+str(pop_means_with_climate)
+
+shannon_contemporary <- lm(GSL_shannon_diversity ~ contemporary_PC1 + contemporary_PC2, data = pop_means_with_climate)
+shannon_historic <- lm(GSL_shannon_diversity ~ historic_PC1 + historic_PC2, data = pop_means_with_climate)
+
+summary(shannon_historic) # PC1 & PC2 p > 0.05
+summary(shannon_contemporary) # PC1 & PC2 p > 0.05
+
+#theyre different - summaries are just similar
+pop_means_with_climate$GSL_logflavonoids
+pop_means_with_climate$GSL_shannon_diversity
+
+# > Visualize data ----
+
+# total GSL pop means
+str(pop_means_with_climate)
+
+# Define a function to generate scatterplots with regression lines
+plot_pca_vs_gsl <- function(data, x_var, x_label) {
+  ggplot(data, aes_string(x = x_var, y = "GSL_logGSL")) +
+    geom_point(size = 3, color = "blue", alpha = 0.7) +  # Scatter points
+    labs(
+      x = x_label,
+      y = "Log GSL",
+      title = paste("logGSL vs", x_label)
+    ) +
+    theme_minimal(base_size = 14)
+}
+
+# Generate plots for each climate PC
+plot1 <- plot_pca_vs_gsl(pop_means_with_climate, "contemporary_PC1", "Contemporary PC1")
+plot2 <- plot_pca_vs_gsl(pop_means_with_climate, "contemporary_PC2", "Contemporary PC2")
+plot3 <- plot_pca_vs_gsl(pop_means_with_climate, "historic_PC1", "Historic PC1")
+plot4 <- plot_pca_vs_gsl(pop_means_with_climate, "historic_PC2", "Historic PC2")
+
+# total GSL mf means
+
+# Define a function to generate scatterplots with regression lines
+plot_pca_vs_gsl <- function(data, x_var, x_label) {
+  ggplot(data, aes_string(x = x_var, y = "logGSL")) +
+    geom_point(size = 3, color = "blue", alpha = 0.7) +  # Scatter points
+    labs(
+      x = x_label,
+      y = "mf means Log GSL",
+      title = paste("mf means logGSL vs", x_label)
+    ) +
+    theme_minimal(base_size = 14)
+}
+
+# Generate plots for each climate PC
+plot1mf <- plot_pca_vs_gsl(mf_means_with_climate, "contemporary_PC1", "Contemporary PC1")
+plot2mf <- plot_pca_vs_gsl(mf_means_with_climate, "contemporary_PC2", "Contemporary PC2")
+plot3mf <- plot_pca_vs_gsl(mf_means_with_climate, "historic_PC1", "Historic PC1")
+plot4mf <- plot_pca_vs_gsl(mf_means_with_climate, "historic_PC2", "Historic PC2")
+
+# Display the plots
+print(plot1mf)
+print(plot3mf)
+print(plot2mf)
+print(plot4mf)
+
+### aliphatics
+
+# aliphatic pop means
+str(pop_means_with_climate)
+
+# Define a function to generate scatterplots with regression lines
+plot_pca_vs_aliphatic <- function(data, x_var, x_label) {
+  ggplot(data, aes_string(x = x_var, y = "GSL_logaliphatics")) +
+    geom_point(size = 3, color = "blue", alpha = 0.7) +  # Scatter points
+    labs(
+      x = x_label,
+      y = "Log aliphatic",
+      title = paste("log aliphatic vs", x_label)
+    ) +
+    theme_minimal(base_size = 14)
+}
+
+# Generate plots for each climate PC
+plot1_aliphatic <- plot_pca_vs_aliphatic(pop_means_with_climate, "contemporary_PC1", "Contemporary PC1")
+plot2_aliphatic <- plot_pca_vs_aliphatic(pop_means_with_climate, "contemporary_PC2", "Contemporary PC2")
+plot3_aliphatic <- plot_pca_vs_aliphatic(pop_means_with_climate, "historic_PC1", "Historic PC1")
+plot4_aliphatic <- plot_pca_vs_aliphatic(pop_means_with_climate, "historic_PC2", "Historic PC2")
+
+# print plots
+plot1_alipihatic
+plot3_aliphatic
+plot2_aliphatic
+plot4_aliphatic
+
+# total GSL mf means
+
+# MFs - Define a function to generate scatterplots with regression lines
+plot_pca_vs_aliphatics_mf <- function(data, x_var, x_label) {
+  ggplot(data, aes_string(x = x_var, y = "logaliphatics")) +
+    geom_point(size = 3, color = "blue", alpha = 0.7) +  # Scatter points
+    labs(
+      x = x_label,
+      y = "mf means Log GSL",
+      title = paste("mf means log aliphatics vs", x_label)
+    ) +
+    theme_minimal(base_size = 14)
+}
+
+# Generate plots for each climate PC
+plot1mf_aliphatics <- plot_pca_vs_aliphatics_mf(mf_means_with_climate, "contemporary_PC1", "Contemporary PC1")
+plot2mf_aliphatics <- plot_pca_vs_aliphatics_mf(mf_means_with_climate, "contemporary_PC2", "Contemporary PC2")
+plot3mf_aliphatics <- plot_pca_vs_aliphatics_mf(mf_means_with_climate, "historic_PC1", "Historic PC1")
+plot4mf_aliphatics <- plot_pca_vs_aliphatics_mf(mf_means_with_climate, "historic_PC2", "Historic PC2")
+
+# Display the plots
+print(plot1mf_aliphatics)
+print(plot3mf_aliphatics)
+print(plot2mf_aliphatics)
+print(plot4mf_aliphatics)
+
+
+### indoles
+
+# indoles pop means
+str(pop_means_with_climate)
+
+# Define a function to generate scatterplots with regression lines
+plot_pca_vs_indoles <- function(data, x_var, x_label) {
+  ggplot(data, aes_string(x = x_var, y = "GSL_logindoles")) +
+    geom_point(size = 3, color = "blue", alpha = 0.7) +  # Scatter points
+    labs(
+      x = x_label,
+      y = "Log indoles",
+      title = paste("log indoles vs", x_label)
+    ) +
+    theme_minimal(base_size = 14)
+}
+
+# Generate plots for each climate PC
+plot1_indoles <- plot_pca_vs_indoles(pop_means_with_climate, "contemporary_PC1", "Contemporary PC1")
+plot2_indoles <- plot_pca_vs_indoles(pop_means_with_climate, "contemporary_PC2", "Contemporary PC2")
+plot3_indoles <- plot_pca_vs_indoles(pop_means_with_climate, "historic_PC1", "Historic PC1")
+plot4_indoles <- plot_pca_vs_indoles(pop_means_with_climate, "historic_PC2", "Historic PC2")
+
+# print plots
+plot1_indoles
+plot3_indoles
+plot2_indoles
+plot4_indoles
+
+# total GSL mf means
+
+# Define a function to generate scatterplots with regression lines
+plot_pca_vs_indoles_mf <- function(data, x_var, x_label) {
+  ggplot(data, aes_string(x = x_var, y = "logindoles")) +
+    geom_point(size = 3, color = "blue", alpha = 0.7) +  # Scatter points
+    labs(
+      x = x_label,
+      y = "mf means log indoles",
+      title = paste("mf means log indoles vs", x_label)
+    ) +
+    theme_minimal(base_size = 14)
+}
+
+# Generate plots for each climate PC
+plot1mf_indoles <- plot_pca_vs_indoles_mf(mf_means_with_climate, "contemporary_PC1", "Contemporary PC1")
+plot2mf_indoles <- plot_pca_vs_indoles_mf(mf_means_with_climate, "contemporary_PC2", "Contemporary PC2")
+plot3mf_indoles <- plot_pca_vs_indoles_mf(mf_means_with_climate, "historic_PC1", "Historic PC1")
+plot4mf_indoles <- plot_pca_vs_indoles_mf(mf_means_with_climate, "historic_PC2", "Historic PC2")
+
+# Display the plots
+print(plot1mf_indoles)
+print(plot3mf_indoles)
+print(plot2mf_indoles)
+print(plot4mf_indoles)
+
+
+### flavonoids 
+
+# flavonoids pop means
+str(pop_means_with_climate)
+
+# Define a function to generate scatterplots with regression lines
+plot_pca_vs_flavonoids <- function(data, x_var, x_label) {
+  ggplot(data, aes_string(x = x_var, y = "GSL_logflavonoids")) +
+    geom_point(size = 3, color = "blue", alpha = 0.7) +  # Scatter points
+    labs(
+      x = x_label,
+      y = "Log flavonoids",
+      title = paste("log flavonoids vs", x_label)
+    ) +
+    theme_minimal(base_size = 14)
+}
+
+# Generate plots for each climate PC
+plot1_flavonoids <- plot_pca_vs_flavonoids(pop_means_with_climate, "contemporary_PC1", "Contemporary PC1")
+plot2_flavonoids <- plot_pca_vs_flavonoids(pop_means_with_climate, "contemporary_PC2", "Contemporary PC2")
+plot3_flavonoids <- plot_pca_vs_flavonoids(pop_means_with_climate, "historic_PC1", "Historic PC1")
+plot4_flavonoids <- plot_pca_vs_flavonoids(pop_means_with_climate, "historic_PC2", "Historic PC2")
+
+# print plots
+plot1_flavonoids
+plot3_flavonoids
+plot2_flavonoids
+plot4_flavonoids
+
+# total GSL mf means
+
+# Define a function to generate scatterplots with regression lines
+plot_pca_vs_flavonoids_mf <- function(data, x_var, x_label) {
+  ggplot(data, aes_string(x = x_var, y = "logflavonoids")) +
+    geom_point(size = 3, color = "blue", alpha = 0.7) +  # Scatter points
+    labs(
+      x = x_label,
+      y = "mf means log flavonoids",
+      title = paste("mf means log flavonoids vs", x_label)
+    ) +
+    theme_minimal(base_size = 14)
+}
+
+# Generate plots for each climate PC
+plot1mf_flavonoids <- plot_pca_vs_flavonoids_mf(mf_means_with_climate, "contemporary_PC1", "Contemporary PC1")
+plot2mf_flavonoids <- plot_pca_vs_flavonoids_mf(mf_means_with_climate, "contemporary_PC2", "Contemporary PC2")
+plot3mf_flavonoids <- plot_pca_vs_flavonoids_mf(mf_means_with_climate, "historic_PC1", "Historic PC1")
+plot4mf_flavonoids <- plot_pca_vs_flavonoids_mf(mf_means_with_climate, "historic_PC2", "Historic PC2")
+
+# Display the plots
+print(plot1mf_flavonoids)
+print(plot3mf_flavonoids)
+print(plot2mf_flavonoids)
+print(plot4mf_flavonoids)
+
+
+
+### shannon diversity
+
+# shannon pop means
+str(pop_means_with_climate)
+
+# Define a function to generate scatterplots with regression lines
+plot_pca_vs_shannon_diversity <- function(data, x_var, x_label) {
+  ggplot(data, aes_string(x = x_var, y = "GSL_shannon_diversity")) +
+    geom_point(size = 3, color = "blue", alpha = 0.7) +  # Scatter points
+    labs(
+      x = x_label,
+      y = "shannon_diversity",
+      title = paste("shannon_diversity vs", x_label)
+    ) +
+    theme_minimal(base_size = 14)
+}
+
+# Generate plots for each climate PC
+plot1_shannon_diversity <- plot_pca_vs_shannon_diversity(pop_means_with_climate, "contemporary_PC1", "Contemporary PC1")
+plot2_shannon_diversity <- plot_pca_vs_shannon_diversity(pop_means_with_climate, "contemporary_PC2", "Contemporary PC2")
+plot3_shannon_diversity <- plot_pca_vs_shannon_diversity(pop_means_with_climate, "historic_PC1", "Historic PC1")
+plot4_shannon_diversity <- plot_pca_vs_shannon_diversity(pop_means_with_climate, "historic_PC2", "Historic PC2")
+
+# print plots
+plot1_shannon_diversity
+plot3_shannon_diversity
+plot2_shannon_diversity
+plot4_shannon_diversity
+
+# total GSL mf means
+
+# Define a function to generate scatterplots with regression lines
+plot_pca_vs_shannon_diversity_mf <- function(data, x_var, x_label) {
+  ggplot(data, aes_string(x = x_var, y = "shannon_diversity")) +
+    geom_point(size = 3, color = "blue", alpha = 0.7) +  # Scatter points
+    labs(
+      x = x_label,
+      y = "mf mean shannon_diversity",
+      title = paste("mf mean shannon_diversity vs", x_label)
+    ) +
+    theme_minimal(base_size = 14)
+}
+
+# Generate plots for each climate PC
+plot1mf_shannon_diversity <- plot_pca_vs_shannon_diversity_mf(mf_means_with_climate, "contemporary_PC1", "Contemporary PC1")
+plot2mf_shannon_diversity <- plot_pca_vs_shannon_diversity_mf(mf_means_with_climate, "contemporary_PC2", "Contemporary PC2")
+plot3mf_shannon_diversity <- plot_pca_vs_shannon_diversity_mf(mf_means_with_climate, "historic_PC1", "Historic PC1")
+plot4mf_shannon_diversity <- plot_pca_vs_shannon_diversity_mf(mf_means_with_climate, "historic_PC2", "Historic PC2")
+
+# Display the plots
+print(plot1mf_shannon_diversity)
+print(plot3mf_shannon_diversity)
+print(plot2mf_shannon_diversity)
+print(plot4mf_shannon_diversity)
+
+### Visualize pairwise Pst
+
 
 # > Total GSLs ----
-# total gsl and pc1
-GSL_PC1 <- lmer(logGSL ~ PC1 +  (1|Population), data = mf_means_with_climate)
-summary(GSL_PC1)
 
-GSL_PC1_2 <- lmer(logGSL ~  (1|Population), data = mf_means_with_climate)
+# see how climate PC scores relate
+plot(pop_means_with_climate$contemporary_PC1 ~ pop_means_with_climate$historic_PC1) # extremely correlatred
+plot(pop_means_with_climate$contemporary_PC2 ~ pop_means_with_climate$historic_PC2) # extremely correlatred
 
-anova(GSL_PC1, GSL_PC1_2, test = "Chi") #p=0.04
 
+# plot it
 
 # Generate predictions from the lme model
-mf_means_with_climate$predicted_logGSL <- predict(GSL_PC1)  # Fixed effects only
 
-mf_means_with_climate <- mf_means_with_climate %>%
-  arrange(PC1)
+# contemporary
+pop_means_with_climate$predicted_logGSL_contemporary <- predict(GSL_contemporary)  # Fixed effects only
+
+pop_means_with_climate <- pop_means_with_climate %>%
+  arrange(contemporary_PC1)
+
+str(pop_means_with_climate)
 
 # Generate new data for smooth predictions
-new_PC1 <- expand.grid(
-  PC1 = seq(min(mf_means_with_climate$PC1), max(mf_means_with_climate$PC1), length.out = 100),
-  Population = unique(mf_means_with_climate$Population) # Keep all Population levels!
+new_PC1_contemporary <- expand.grid(
+  contemporary_PC1 = seq(min(pop_means_with_climate$contemporary_PC1), max(mf_means_with_climate$contemporary_PC1), length.out = 100),
+  Population = unique(pop_means_with_climate$Population) # Keep all Population levels!
 )
 
+str(new_PC1_contemporary)
+
 # Predict using both fixed + random effects
-new_PC1$predicted_logGSL <- predict(GSL_PC1, newdata = new_PC1, re.form = NULL)  
+new_PC1_contemporary$predicted_logGSL <- predict(GSL_contemporary, newdata = new_PC1_contemporary, re.form = NULL)  
 
 
 # Merge elevation data so each Population has its elevation value
@@ -123,13 +471,6 @@ ggplot(data = mf_means_with_climate, aes(x = PC1, y = logGSL, color = elevation.
   theme_minimal() + 
   scale_color_gradient(low = "orange", high = "blue")  # Adjust color scale
 
-# Total GSLs & PC2
-GSL_PC2 <- lmer(logGSL ~ PC2 +  (1|Population), data = mf_means_with_climate)
-summary(GSL_PC1)
-
-GSL_PC2_2 <- lmer(logGSL ~  (1|Population), data = mf_means_with_climate)
-
-anova(GSL_PC2, GSL_PC2_2, test = "Chi") #p=0.47
 
 # > Total indoles ----
 
@@ -141,10 +482,11 @@ mf_means_with_climate_infdrop <- mf_means_with_climate %>%
 indole_PC1 <- lmer(logindoles ~ PC1 + (1|Population), data = mf_means_with_climate_infdrop)
 summary(indole_PC1)
 
-indole_PC1_2 <- lmer(logindoles ~  (1|Population), data = mf_means_with_climate_infdrop)
+indole_PC1_2 <- lmer(logindoles ~ + (1|Population), data = mf_means_with_climate_infdrop)
 
-anova(indole_PC1, indole_PC1_2, test = "Chi") #p=0.57
+anova(indole_PC1_2, indole_PC1, test = "Chi") #p=0.57
 
+summary(indole_PC1_2)
 
 # Total indoles & PC 2
 indole_PC2 <- lmer(logindoles ~ PC2 + (1|Population), data = mf_means_with_climate_infdrop)
@@ -158,10 +500,12 @@ anova(indole_PC2, indole_PC2_2, test = "Chi") #p=0.68
 aliphatics_PC1 <- lmer(logaliphatics ~ PC1 + (1|Population), data = mf_means_with_climate)
 summary(aliphatics_PC1)
 
-aliphatics_PC1_2 <- lmer(logaliphatics ~ (1|Population), data = mf_means_with_climate)
+aliphatics_PC1_2 <- lmer(logaliphatics ~ + (1|Population), data = mf_means_with_climate)
 
-anova(aliphatics_PC1, aliphatics_PC1_2, test = "Chi") #p=0.05 - significant
+anova(aliphatics_PC1_2, aliphatics_PC1, test = "LRT") #p=0.05 - significant
 
+# simple beter
+summary(aliphatics_PC1_2)
 
 # Generate new data for smooth predictions
 new_PC1_aliphatics_PC1 <- expand.grid(
@@ -200,13 +544,49 @@ anova(aliphatics_PC2, aliphatics_PC2_2, test = "Chi") #p=0.66
 
 # > Total flavonoids ----
 
+hist(mf_means_with_climate$logGSL)
+hist(mf_means_with_climate$logindoles)
+hist(mf_means_with_climate$logaliphatics)
+hist(mf_means_with_climate$logflavonoids)
+hist(mf_means_with_climate$shannon_diversity)
+
 ### PC1
 flav_PC1 <- lmer(logflavonoids ~ PC1 + (1|Population), data = mf_means_with_climate)
 summary(flav_PC1)
 
 #JG need likelihood ratio test for significance
 flav_PC1_2 <- lmer(logflavonoids ~ (1|Population), data = mf_means_with_climate)
-anova(flav_PC1, flav_PC1_2, test = "Chi") #p=0.40
+anova(flav_PC1, flav_PC1_2, test = "Chi") #p=0.27
+
+
+# Generate new data for smooth predictions
+new_PC1_flavonoid <- expand.grid(
+  PC1 = seq(min(mf_means_with_climate$PC1), max(mf_means_with_climate$PC1), length.out = 100),
+  Population = unique(mf_means_with_climate$Population) # Keep all Population levels!
+)
+
+
+# Predict using both fixed + random effects
+new_PC1_flavonoid$predicted_flavonoid_PC1 <- predict(flav_PC1 , newdata = new_PC1_flavonoid, re.form = NULL)  
+
+
+# Merge elevation data so each Population has its elevation value
+elevation_data <- mf_means_with_climate %>% 
+  select(Population, elevation) %>% 
+  distinct()  # Keep unique Population-elevation pairs
+
+
+
+new_PC1_flavonoid  <- new_PC1_flavonoid %>% left_join(elevation_data, by = "Population")
+
+# Plot again with group-specific fitted lines
+ggplot(data = mf_means_with_climate, aes(x = PC1, y = logflavonoids, color = elevation)) + 
+  geom_point(size = 3) + 
+  geom_line(data = new_PC1_flavonoid, aes(x = PC1, y = predicted_flavonoid_PC1, group = Population, color = elevation), 
+            linewidth = 1) +  
+  theme_minimal() + 
+  scale_color_gradient(low = "orange", high = "blue")  # Adjust color scale
+
 
 ### PC2
 flav_PC2 <- lmer(logflavonoids ~ PC2 + (1|Population), data = mf_means_with_climate)
@@ -229,7 +609,7 @@ new_PC2_flavonoid$predicted_flavonoid_PC2 <- predict(flav_PC2 , newdata = new_PC
 
 # Merge elevation data so each Population has its elevation value
 elevation_data <- mf_means_with_climate %>% 
-  select(Population, elevation.x) %>% 
+  select(Population, elevation) %>% 
   distinct()  # Keep unique Population-elevation pairs
 
 
@@ -237,9 +617,9 @@ elevation_data <- mf_means_with_climate %>%
 new_PC2_flavonoid  <- new_PC2_flavonoid %>% left_join(elevation_data, by = "Population")
 
 # Plot again with group-specific fitted lines
-ggplot(data = mf_means_with_climate, aes(x = PC2, y = logflavonoids, color = elevation.x)) + 
+ggplot(data = mf_means_with_climate, aes(x = PC2, y = logflavonoids, color = elevation)) + 
   geom_point(size = 3) + 
-  geom_line(data = new_PC2_flavonoid, aes(x = PC2, y = predicted_flavonoid_PC2, group = Population, color = elevation.x), 
+  geom_line(data = new_PC2_flavonoid, aes(x = PC2, y = predicted_flavonoid_PC2, group = Population, color = elevation), 
             linewidth = 1) +  
   theme_minimal() + 
   scale_color_gradient(low = "orange", high = "blue")  # Adjust color scale

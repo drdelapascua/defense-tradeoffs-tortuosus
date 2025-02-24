@@ -18,34 +18,37 @@ library(viridis)
 
 ### > load data ----
 pop_means_long <- read.csv("./data/pop_means_long.csv") %>%
-  select(-compound.type) %>%
-  filter(compound != totalGSL)
+  select(-compound.type)
 
 head(pop_means_long)
 
 elevation_dat <- read.csv("./data/elevation.csv") %>%
-  select(Elevation, Population)
+  select(Elevation, Population) %>%
+  mutate(Population = replace(Population, Population == "YO10", "YOSE10"))
+
 
 pop_means_long_el <- pop_means_long %>%
+  mutate(Population = replace(Population, Population == "YO10", "YOSE10")) %>%
   left_join(elevation_dat, by = "Population")
+  
 
 #total gsl
 GSL_totals <-  read.csv("./data/dw.csv") %>%
   filter(treatment == "C") %>% # filter for the controls
   select("Population", "mf", "biomass", "totalGSL")%>% 
-  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3", "YO10"))
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3", "YOSE10"))
 
 #total aliphatic
 aliphatic_totals <-  read.csv("./data/dw.csv") %>%
   filter(treatment == "C") %>% # filter for the controls
   select("Population", "mf", "biomass", "totalaliphatic")%>% 
-  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3", "YO10"))
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3", "YOSE10"))
 
 #total indole
 indole_totals <-  read.csv("./data/dw.csv") %>%
   filter(treatment == "C") %>% # filter for the controls
   select("Population", "mf", "biomass", "totalindole")%>% 
-  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3", "YO10"))
+  filter(Population %in% c("BH", "IH", "TM2", "CP2", "DPR", "KC2", "LV1", "LV2", "SQ1", "WL1", "WL2", "WL3", "YOSE10"))
 
 
 ####  growth and defense
@@ -63,16 +66,32 @@ ggplot(pop_means_long, aes(x = treatment, y = value, fill = compound)) +
   theme_minimal()
 
 #build barplot with just aliphatic & indole
+library(RColorBrewer)  # For a high-contrast color palette
+
+# Update compound names for better readability
 ab_means <- pop_means_long_el %>%
-  filter(compound %in% c("totalaliphatic", "totalindole")) %>%
-  mutate(Population = factor(Population, levels = unique(Population[order(Elevation)])))
+  filter(compound %in% c("totalaliphatic", "totalindole", "totalflavonoid")) %>%
+  mutate(Population = factor(Population, levels = unique(Population[order(Elevation)])),
+         compound = recode(compound,
+                           "totalaliphatic" = "Aliphatic Glucosinolates",
+                           "totalindole" = "Indole Glucosinolates",
+                           "totalflavonoid" = "Flavonoids"))
 
+# Use a high-contrast color palette
+color_palette <- brewer.pal(n = 3, name = "Dark2")  # You can also try "Set1" or "Paired"
 
+# Generate the plot
 ggplot(ab_means, aes(x = treatment, y = value, fill = compound)) + 
   geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
-  facet_wrap(~ Population) +  # Create separate plots for each treatment
-  labs(x = "Treatment", y = "ug/g glucosinolate", fill = "Compound") +
-  theme_minimal()
+  facet_wrap(~ Population) +  # Create separate plots for each Population
+  scale_fill_manual(values = color_palette) +  # Apply new color palette
+  labs(x = "Treatment", y = "ug/g Glucosinolate", fill = "Compound") +
+  theme_minimal() +
+  theme(
+    legend.position = "right",  # Move legend to the right for better clarity
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis text for better readability
+    text = element_text(size = 14)  # Increase text size for clarity
+  )
 
 # build barplot with all other cmpds
 small_cmpd_means <- pop_means_long %>%

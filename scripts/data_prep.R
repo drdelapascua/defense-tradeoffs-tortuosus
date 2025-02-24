@@ -14,6 +14,8 @@ library(ggrepel)
 library(viridis)
 library(ggbiplot)
 library(export)
+library("factoextra")
+
 
 ### > load data ----
 
@@ -512,134 +514,421 @@ write.csv(pop_means_rem_ohi3m, "./data/pop_means_rem_ohi3m.csv")
 
 ### Climate data ----
 
-all_locs = read.csv("./data/localities.csv") %>%
-  mutate(id = if_else(id == "Ben Hur", "BH", id)) %>%
-  mutate(id = if_else(id == "TM2 (was TM P)", "TM2", id))
+#all_locs = read.csv("./data/localities.csv") %>%
+#  mutate(id = if_else(id == "Ben Hur", "BH", id)) %>%
+#  mutate(id = if_else(id == "TM2 (was TM P)", "TM2", id))
 #  select(-(collection_date:locality)) %>%
 #  select(-pop_gen)
 
-head(all_locs)
+#head(all_locs)
 
 my_locs = read.csv("./data/elevation.csv") %>%
-  select(id = "Population", latitude = "Lat", longitude = "Long", elevation = "Elevation")
+  select(pop = "Population", latitude = "Lat", longitude = "Long", elevation = "Elevation") %>%
+  mutate(pop = gsub("MtSH", "MSH", pop))
 
+str(my_locs)
 my_locs$taxon_name <- "Streptanthus tortuosus"
 
-head(my_locs)
-summary(my_locs)
+# make filter for my pops
+pops_to_keep <- my_locs$pop
 
-climate = read_csv("./data/flintbcm_climate_tall_herbarium.csv") %>% 
-  filter(clim_year > 1950, clim_year < 2000) %>% 
+# load data & filter to only my pops 
+
+# contemporary
+my_climate_contemporary = read_csv("./data/climate/Dimensions_All_1895-2022.csv") %>% 
+  select(pop, year, month, cwd, ppt, str, pck, tmn, tmx) %>%
+  filter(year > 1989, year < 2021) %>% 
   mutate(pck = abs(pck)) %>% 
-  group_by(id) %>% 
-  dplyr::summarize(cwd = sum(cwd), ppt_mm = sum(ppt_mm), pck = sum(pck), snw = sum(snw), tmin = mean(tmin), tmax = mean(tmax)) %>% 
-  mutate(id = if_else(id == "Ben Hur", "BH", id)) %>%
-  mutate(id = if_else(id == "TM2 (was TM P)", "TM2", id)) %>%
-  left_join(., all_locs) %>% 
-  filter(!is.na(cwd), taxon_name %in% c("Streptanthus tortuosus", "Streptanthus tortuosus var. tortuosus"))
+  filter(pop %in% pops_to_keep) %>%
+  group_by(pop) %>%
+  left_join(my_locs, by = "pop")
 
-my_climate = read_csv("./data/flintbcm_climate_tall_herbarium.csv") %>% 
-  filter(clim_year > 1950, clim_year < 2000) %>% 
+# historic
+my_climate_historic = read_csv("./data/climate/Dimensions_All_1895-2022.csv") %>% 
+  select(pop, year, month, cwd, ppt, str, pck, tmn, tmx) %>%
+  filter(year < 1990) %>% 
   mutate(pck = abs(pck)) %>% 
-  group_by(id) %>% 
-  dplyr::summarize(cwd = sum(cwd), ppt_mm = sum(ppt_mm), pck = sum(pck), snw = sum(snw), tmin = mean(tmin), tmax = mean(tmax)) %>% 
-  mutate(id = if_else(id == "Ben Hur", "BH", id)) %>%
-  mutate(id = if_else(id == "TM2 (was TM P)", "TM2", id)) %>%
-  mutate(id = if_else(id == "UCD161863", "MtSH", id)) %>%
-  mutate(id = if_else(id == "UCD164328", "CALO", id)) %>%
-  mutate(id = if_else(id == "RSA795268", "LC", id)) %>%
-  mutate(id = if_else(id == "RSA0085001", "TFC", id)) %>%
-  mutate(id = if_else(id == "CHSC98313", "RB", id)) %>%
-  full_join(., my_locs) %>% 
-  filter(!is.na(cwd), taxon_name %in% c("Streptanthus tortuosus", "Streptanthus tortuosus var. tortuosus"))
+  filter(pop %in% pops_to_keep) %>%
+  group_by(pop) %>%
+  left_join(my_locs, by = "pop")
 
-# get rid of the 2 pops that were excluded form experimment (MtSH and ) 
+str(my_climate_historic)
 
-climate_for_pc = my_climate %>% 
-  select(cwd, pck, ppt_mm, snw, tmin, tmax)
+### load in langes crossing data
 
-summary(climate_for_pc)
+# Read each file into a separate dataframe
+cwd_df <- read_csv("./data/climate/Danielle_cwd_1895-2022.csv")
+pck_df <- read_csv("./data/climate/Danielle_pck_1895-2022.csv")
+ppt_df <- read_csv("./data/climate/Danielle_ppt_1895-2022.csv")
+str_df <- read_csv("./data/climate/Danielle_str_1895-2022.csv")
+tmx_df <- read_csv("./data/climate/Danielle_tmx_1895-2022.csv")
+tmn_df <- read_csv("./data/climate/Danielle_tmn_1895-2022.csv")
 
-pc = prcomp(climate_for_pc, scale = TRUE)
+# Ensure column names are consistent
+dfs <- list(cwd_df, pck_df, ppt_df, str_df, tmx_df, tmn_df)
+dfs <- lapply(dfs, function(df) {
+  colnames(df) <- tolower(colnames(df))  # Standardize column names
+  return(df)
+})
 
-pc_data = data.frame(pc$x)
+# Merge datasets using left joins by 'year' and 'month'
+LC_climate_contemporary <- reduce(dfs, left_join, by = c("year", "month")) %>%
+  filter(year > 1989, year < 2021)
+  
+# View the merged dataframe
+print(head(LC_climate_contemporary))
 
-locs_pc = cbind(my_climate, pc_data)
+# Add a new column "pop" with value "LC"
+LC_climate_contemporary_2 <- LC_climate_contemporary %>%
+  mutate(pop = "LC") %>%
+  left_join(my_locs, by = "pop")
+
+# View the updated dataframe
+print(head(LC_climate_contemporary_2))
+
+# Save merged climate data
+write_csv(LC_climate_contemporary_2, "./data/climate/LC_merged_climate_data.csv")
+
+# add to the big climate df
+
+all_climate_contemporary <- bind_rows(my_climate_contemporary, LC_climate_data_2)
+
+### historics LC data
+LC_climate_historic <- reduce(dfs, left_join, by = c("year", "month")) %>%
+  filter(year < 1990)
+
+# View the merged dataframe
+print(head(LC_climate_historic))
+
+# Add a new column "pop" with value "LC"
+LC_climate_historic_2 <- LC_climate_historic %>%
+  mutate(pop = "LC") %>%
+  left_join(my_locs, by = "pop")
+
+# View the updated dataframe
+print(head(LC_climate_historic_2))
+
+# Save merged climate data
+write_csv(LC_climate_historic_2, "./data/climate/LC_merged_climate_data_historic.csv")
+
+# add to the big climate df
+
+all_climate_historic <- bind_rows(my_climate_historic, LC_climate_historic_2)
+
+print(all_climate_historic)
+### > growing season ----
+
+### Contemporary
+
+# Define site groups
+high_elev_sites <- c("LV3", "SQ3", "WL2", "YO1", "SQ1", "WL3", "SQ2", "YOSE8", "CP2", "YOSE10", "LV1", "LV2")
+low_elev_sites <- c("WL1", "BH", "TM2", "KC2", "IH", "SC", "RB", "MSH", "CALO", "TFC", "DPR", "LC")
+
+# Function to calculate growing season length for high-elevation sites
+calc_growing_season_high <- function(df) {
+  df %>%
+    arrange(year, month) %>%
+    group_by(pop, year) %>%
+    summarize(
+      start_month = first(month[pck == 0], default = NA),  # First snow-free month
+      end_month = first(month[pck > 0 & !is.na(pck)], default = NA),  # First snow-covered month
+      growing_season = case_when(
+        is.na(start_month) | is.na(end_month) ~ NA_real_,  # Exclude incomplete cases
+        end_month < start_month ~ (12 - start_month) + end_month,  # Carry over to next year
+        TRUE ~ end_month - start_month  # Normal case
+      )
+    ) %>%
+    ungroup()
+}
+# Function to calculate growing season length for low-elevation sites
+calc_growing_season_low <- function(df) {
+  df %>%
+    arrange(year, month) %>%
+    group_by(pop, year) %>%
+    summarize(
+      start_month = first(month[ppt > 25], default = NA),  # First month with ppt > 25 mm
+      end_month = last(month[ppt > 0], default = NA),  # Last month with any precipitation
+      growing_season = ifelse(!is.na(start_month) & !is.na(end_month), end_month - start_month, NA)
+    ) %>%
+    ungroup()
+}
+
+
+# Compute growing season length for high-elevation sites
+high_elev_contemp_gs <- all_climate_contemporary %>%
+  filter(pop %in% high_elev_sites) %>%
+  calc_growing_season_high()
+
+# Compute growing season length for low-elevation sites
+low_elev_contemp_gs <- all_climate_contemporary %>%
+  filter(pop %in% low_elev_sites) %>%
+  calc_growing_season_low()
+
+# Combine and calculate mean growing season length (1990-2020)
+growing_season_summary_contemp <- bind_rows(high_elev_contemp_gs, low_elev_contemp_gs) %>%
+  group_by(pop) %>%
+  summarize(avg_growing_season = mean(growing_season, na.rm = TRUE))
+
+# Print summary
+print(growing_season_summary_contemp)
+
+### Historic
+
+# Compute growing season length for high-elevation sites
+high_elev_hist_gs <- all_climate_historic %>%
+  filter(pop %in% high_elev_sites) %>%
+  calc_growing_season_high()
+
+print(all_climate_historic)
+
+# Compute growing season length for low-elevation sites
+low_elev_hist_gs <- all_climate_historic %>%
+  filter(pop %in% low_elev_sites) %>%
+  calc_growing_season_low()
+
+# Combine and calculate mean growing season length (1990-2020)
+growing_season_summary_historic <- bind_rows(high_elev_hist_gs, low_elev_hist_gs) %>%
+  group_by(pop) %>%
+  summarize(avg_growing_season = mean(growing_season, na.rm = TRUE))
+
+# Print summary
+print(growing_season_summary_historic)
+
+### make df for pc data
+
+# contemp
+climate_for_pc_contemporary = all_climate_contemporary %>% 
+  select(pop, year, month, cwd, pck, ppt, str, tmn, tmx, elevation) %>%
+  mutate(water_year = ifelse(month >= 9, year + 1, year)) %>% # Shift year starting from September
+  dplyr::summarize(cwd = sum(cwd), ppt = sum(ppt), pck = sum(pck), tmin = mean(tmn), tmax = mean(tmx), elevation = mean(elevation), str = sum(str)) %>% 
+  left_join(growing_season_summary_contemp, by = "pop")
+
+climate_for_pc_contemporary_values <- climate_for_pc_contemporary %>%
+  select(-"pop")
+
+str(climate_for_pc_contemporary)
+
+# historic
+climate_for_pc_historic = all_climate_historic %>% 
+  select(pop, year, month, cwd, pck, ppt, str, tmn, tmx, elevation) %>%
+  mutate(water_year = ifelse(month >= 9, year + 1, year)) %>% # Shift year starting from September
+  dplyr::summarize(cwd = sum(cwd), ppt = sum(ppt), pck = sum(pck), tmin = mean(tmn), tmax = mean(tmx), elevation = mean(elevation), str = sum(str)) %>% 
+  left_join(growing_season_summary_historic, by = "pop")
+
+climate_for_pc_historic_values <- climate_for_pc_historic %>%
+  select(-"pop")
+
+str(climate_for_pc_historic)
+str(climate_for_pc_historic_values)
+
+# > make PCA ----
+
+# contemporary
+
+print(climate_for_pc_contemporary)
+
+pc_contemporary = prcomp(climate_for_pc_contemporary_values, scale = TRUE)
+
+summary(pc_contemporary)
+
+pc_contemporary_scores = data.frame(pc_contemporary$x)
+
+locs_pc_contemporary = cbind(climate_for_pc_contemporary, pc_contemporary_scores)
+
+#scree plot
+fviz_eig(pc_contemporary)
+
+contemporary_loadings <- pc_contemporary[["rotation"]]
+
+print(contemporary_loadings)
+
+#historic
+
+print(climate_for_pc_historic_values)
+
+pc_historic = prcomp(climate_for_pc_historic_values, scale = TRUE)
+
+summary(pc_historic)
+
+pc_historic_scores = data.frame(pc_historic$x)
+
+locs_pc_historic = cbind(climate_for_pc_historic, pc_historic_scores)
+
+fviz_eig(pc_historic)
+loadings_historic <- pc_historic[["rotation"]]
+
+# graph of individuals - similar profiles grouped together
+
+### contemporary
+
+# PCA biplot with loading arrows and labeled points
+fviz_pca_biplot(pc_contemporary,
+                geom.ind = "point",        # Use points for individuals
+                label = "var",             # Label variables (loadings)
+                col.var = "black",           # Loadings (arrows) in red
+                col.ind = locs_pc_contemporary$elevation, # Color points by elevation
+                pointsize = 4,             # Make points larger
+                repel = TRUE               # Avoid overlapping labels
+) +
+  # Custom color gradient: lower elevation (orange) → higher elevation (blue)
+  scale_color_gradient(low = "orange", high = "blue", name = "Elevation (m)") +
+    
+  # Add text labels for locations
+  geom_text(data = locs_pc_contemporary, aes(x = PC1, y = PC2, label = pop), 
+            vjust = -0.5, size = 3, color = "black") +
+  
+# Set custom axis labels
+labs(x = "Conemporary Climate PC1", 
+     y = "Conemporary Climate PC2")
+
+# graph of vars 
+
+fviz_pca_var(pc_contemporary,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+
+### historic
+
+# PCA biplot with loading arrows and labeled points
+fviz_pca_biplot(pc_historic,
+                geom.ind = "point",        # Use points for individuals
+                label = "var",             # Label variables (loadings)
+                col.var = "black",           # Loadings (arrows) in red
+                col.ind = locs_pc_historic$elevation, # Color points by elevation
+                pointsize = 4,             # Make points larger
+                repel = TRUE               # Avoid overlapping labels
+) +
+  # Custom color gradient: lower elevation (orange) → higher elevation (blue)
+  scale_color_gradient(low = "orange", high = "blue", name = "Elevation (m)") +
+  
+  # Add text labels for locations
+  geom_text(data = locs_pc_historic, aes(x = PC1, y = PC2, label = pop), 
+            vjust = -0.5, size = 3, color = "black")+
+  
+  # Set custom axis labels
+  labs(x = "Historic Climate PC1", 
+       y = "Historic Climate PC2")
+
+# graph of vars
+
+fviz_pca_var(pc_historic,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+
 
 # Add identifying information to PCA scores
-pc_data_with_id <- cbind(ID = locs_pc$id, pc_data[, c("PC1", "PC2")])
 
-loadings = data.frame(varnames=rownames(pc$rotation), pc$rotation)
+### contemporary
+pc_data_with_id_contemporary <- cbind(ID = locs_pc_contemporary$pop, pc_contemporary_scores[, c("PC1", "PC2")])
+
+loadings_contemporary = data.frame(varnames=rownames(pc_contemporary$rotation), pc_contemporary$rotation)
 
 # Extract PCA scores for the first two principal components
-pca_scores <- as.data.frame(pc$x[, 1:2])
+pc1_2_scores_contemporary <- as.data.frame(pc_contemporary$x[, 1:2])
+
+str(pc1_2_scores_contemporary)
 
 # Add sample names (row names) to the PCA scores
-pca_scores$names <- my_climate$id
+pc1_2_scores_contemporary$names <- climate_for_pc_contemporary$pop
 
-# Extract PCA loadings (variable contributions)
-pca_loadings <- as.data.frame(pc$rotation[, 1:2])
-colnames(pca_loadings) <- c("PC1", "PC2")
-pca_loadings$variable <- rownames(pca_loadings)  # Add variable names
-
-scaling_factor <- 3  # Adjust this value as needed
-pca_loadings <- pca_loadings %>%
-  mutate(PC1 = PC1 * scaling_factor, PC2 = PC2 * scaling_factor)
-
-# Ensure `elevation` is part of the PCA scores data
-pca_scores <- cbind(pca_scores, elevation = my_climate$elevation)
-
-# Plot PCA
-ggplot() +
-  # Plot sample points with elevation as color
-  geom_point(data = pca_scores, aes(x = PC1, y = PC2, color = elevation), size = 3) +
-  # Add labels for sample points
-  geom_text(data = pca_scores, aes(x = PC1, y = PC2, label = names), vjust = -0.5, size = 3) +
-  # Add loading vectors as arrows
-  geom_segment(data = pca_loadings, aes(x = 0, y = 0, xend = PC1, yend = PC2), 
-               arrow = arrow(length = unit(0.2, "cm")), color = "red") +
-  # Add labels for loadings
-  geom_text(data = pca_loadings, aes(x = PC1, y = PC2, label = variable), 
-            color = "red", vjust = -0.5, size = 3) +
-  # Add axis labels and title
-  labs(title = "PCA Plot with Loadings and Elevation", x = "PC1 (79.46%)", y = "PC2 (14.91%)", color = "Elevation") +
-  scale_color_gradient(low="orange", high="blue") +
-  theme_minimal()
+str(pc1_2_scores_contemporary)
 
 # Add PC1 and PC2 values to the big dataframe
-pca_scores_df <- pca_scores %>%
+pca_scores_df_contemporary <- pc1_2_scores_contemporary %>%
   rename(Population = names)
 
-my_climate_df <- my_climate %>%
-  rename(Population = id)
+str(pca_scores_df_contemporary)
 
-my_climate_df2 <- my_climate_df %>%
-  left_join(pca_scores_df, by = "Population") %>%
-  select(-taxon_name)
+all_climate_df_contemporary <- climate_for_pc_contemporary %>%
+  rename(Population = pop) %>%
+  left_join(pca_scores_df_contemporary, by = "Population") %>%
+  mutate(contemporary_PC1 = PC1, contemporary_PC2 = PC2) %>%
+  select(-c("PC1", "PC2"))
 
-# save big climate df 
-write.csv(my_climate_df2, file = "./data/climate_PC_data.csv")
+str(all_climate_df_contemporary)
+
+### historic
+
+pc_data_with_id_historic <- cbind(ID = locs_pc_historic$pop, pc_historic_scores[, c("PC1", "PC2")])
+
+str(pc_data_with_id_historic)
+
+loadings_historic = data.frame(varnames=rownames(pc_historic$rotation), pc_historic$rotation)
+
+str(loadings_historic)
+
+# Extract PCA scores for the first two principal components
+pc1_2_scores_historic <- as.data.frame(pc_historic$x[, 1:2])
+
+str(pc1_2_scores_historic)
+
+# Add sample names (row names) to the PCA scores
+pc1_2_scores_historic$names <- climate_for_pc_historic$pop
+
+str(pc1_2_scores_historic)
+
+# Add PC1 and PC2 values to the big dataframe
+pca_scores_df_historic <- pc1_2_scores_historic %>%
+  rename(Population = names)
+
+str(pca_scores_df_historic)
+
+all_climate_df_historic <- climate_for_pc_historic %>%
+  rename(Population = pop) %>%
+  left_join(pca_scores_df_historic, by = "Population") %>%
+  mutate(historic_PC1 = PC1, historic_PC2 = PC2) %>%
+  select(-c("PC1", "PC2"))
+
+str(all_climate_df_historic)
+
+# make a df with just the 2 PCa and pop
+
+all_climate_df_historic_for_merge <- all_climate_df_historic %>%
+  dplyr::select(Population, historic_PC1, historic_PC2)
+
+str(all_climate_df_historic_for_merge)
+
+### Merge dfs 
+
+# merge contemporary and historic climate pcs
+
+all_climate_and_PCs <- all_climate_df_contemporary %>%
+  left_join(all_climate_df_historic_for_merge, by = "Population")
+
+str(all_climate_and_PCs)
 
 # merge climate data into the big data frame
+
 data_with_clim <- data %>% 
-  left_join(my_climate_df2, by = "Population") 
+  mutate(Population = replace(Population, Population == "YO10", "YOSE10")) %>%
+  mutate(Population = replace(Population, Population == "MtSH", "MSH")) %>%
+  left_join(all_climate_and_PCs, by = "Population") %>%
+  drop_na()
+
+print(data_with_clim)
 
 # merge climate data with the mf means
 mf_means_with_clim <- mf_means %>% 
-  left_join(my_climate_df2, by = "Population") 
+  mutate(Population = replace(Population, Population == "YO10", "YOSE10")) %>%
+  mutate(Population = replace(Population, Population == "MtSH", "MSH")) %>%
+  left_join(all_climate_and_PCs, by = "Population") %>%
+  drop_na()
 
 # merge climate data with the pop means
 pop_means_with_clim <- pop_means %>%
-  left_join(my_climate_df2, by = "Population") 
-  
-# save big df
-write.csv(data_with_clim, file = "./data/dw_with_clim.csv")
+  mutate(Population = replace(Population, Population == "YO10", "YOSE10")) %>%
+  mutate(Population = replace(Population, Population == "MtSH", "MSH")) %>%
+  left_join(all_climate_and_PCs, by = "Population") %>%
+  drop_na()
+
+### SAVE DFs
 
 # save mf means
 write.csv(mf_means_with_clim, file = "./data/mf_means_with_clim.csv")
 
 # save pops means
 write.csv(pop_means_with_clim, file = "./data/pop_means_with_clim.csv")
-
-controls <- data %>%
-  filter(treatment == "C")

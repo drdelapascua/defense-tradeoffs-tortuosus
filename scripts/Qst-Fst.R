@@ -75,7 +75,7 @@ for (i in 1:nperm) {
   model_totalGSLboot <- lme(logGSL ~ 1, random = ~1|Population, data = resampled_data_totalGSLs)
   
   # Store variances and calculate PST
-  variance_components_totalGSLb <- as.data.frame(VarCorr(model_totalGSLboot))
+  variance_components_totalGSL <- as.data.frame(VarCorr(model_totalGSLboot))
   MS.bootpop[i] <- as.numeric(VarCorr(model_totalGSLboot)[1]) 
   MS.bootres[i] <- as.numeric(VarCorr(model_totalGSLboot)[2])
   tablePSTboot[i] <- MS.bootpop[i] / (MS.bootpop[i] + 2 * MS.bootres[i])

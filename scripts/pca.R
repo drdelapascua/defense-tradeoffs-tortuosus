@@ -9,19 +9,64 @@ setwd("C:/Users/13215/Box/Ch. 2 Intraspecific defense t-os")
 
 locs = read_csv("data/localities.csv")
 
+# pull climate data
 climate = read_csv("data/flintbcm_climate_tall_herbarium.csv") %>% 
   filter(clim_year > 1950, clim_year < 2000) %>% 
   mutate(pck = abs(pck)) %>% 
   group_by(id) %>% 
-  dplyr::summarize(cwd = sum(cwd), ppt_mm = sum(ppt_mm), pck = sum(pck), snw = sum(snw), tmin = mean(tmin), tmax = mean(tmax)) %>% 
+  dplyr::summarize(cwd = sum(cwd), ppt_mm = sum(ppt_mm), pck = sum(pck), snw = sum(snw), str = sum(str), tmin = mean(tmin), tmax = mean(tmax)) %>% 
   left_join(., locs) %>% 
   filter(!is.na(cwd), taxon_name %in% c("Streptanthus tortuosus", "Streptanthus tortuosus var. tortuosus"))
 
 table(climate$taxon_name)
 
-climate_for_pc = climate %>% 
-  select(cwd, pck, ppt_mm, snw, tmin, tmax)
+# Define site groups
+high_elev_sites <- c("LV3", "SQ3", "WL2", "YO1", "SQ1", "WL3", "SQ2", "YOSE8", "CP2", "YOSE10", "LV1", "LV2")
+low_elev_sites <- c("WL1", "BH", "TM2", "KC2", "IH", "SC", "RB", "MtSH", "CALO", "TFC", "DRP", "LC")
 
+# Function to calculate growing season length for high-elevation sites
+calc_growing_season_high <- function(df) {
+  df %>%
+    arrange(clim_year, month) %>%
+    group_by(id, clim_year) %>%
+    summarize(
+      start_month = first(month[pck == 0], default = NA),  # First month with no snowpack
+      end_month = first(month[pck > 0 & !is.na(pck)], default = NA),  # First month with snow cover
+      growing_season = ifelse(!is.na(start_month) & !is.na(end_month), end_month - start_month, NA)
+    ) %>%
+    ungroup()
+}
+
+# Function to calculate growing season length for low-elevation sites
+calc_growing_season_low <- function(df) {
+  df %>%
+    arrange(clim_year, month) %>%
+    group_by(id, clim_year) %>%
+    summarize(
+      start_month = first(month[ppt_mm > 25], default = NA),  # First month with ppt > 25 mm
+      end_month = last(month[ppt_mm > 0], default = NA),  # Last month with any precipitation
+      growing_season = ifelse(!is.na(start_month) & !is.na(end_month), end_month - start_month, NA)
+    ) %>%
+    ungroup()
+}
+
+climate_for_pc = climate %>% 
+  select(cwd, pck, ppt_mm, snw, str, tmin, tmax, elevation) %>%
+
+# Function to calculate growing season length for high-elevation sites
+calc_growing_season_high <- function(df) {
+  df %>%
+    arrange(clim_year, month) %>%
+    group_by(id, clim_year) %>%
+    summarize(
+      start_month = first(month[pck == 0], default = NA),  # First month with no snowpack
+      end_month = first(month[pck > 0 & !is.na(pck)], default = NA),  # First month with snow cover
+      growing_season = ifelse(!is.na(start_month) & !is.na(end_month), end_month - start_month, NA)
+    ) %>%
+    ungroup()
+}
+  
+  
 summary(climate_for_pc)
 
 pc = prcomp(climate_for_pc, scale = TRUE)

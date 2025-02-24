@@ -1,0 +1,303 @@
+---
+title: "GSL_meeting_2-24-25"
+author: "Danielle De La Pascua"
+date: "2025-02-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#libraries
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(tidyr)
+library("FactoMineR")
+library(ggcorrplot)
+library('corrr')
+library(factoextra)
+library(vegan)
+library(missForest)
+library(viridis)
+library(ggrepel)
+
+```
+
+## load data
+
+```{r}
+
+data <- read.csv("./data/dw.csv") %>%
+  select(-X)
+
+
+```
+
+## simple boxplots of all compounds & sums
+
+```{r}
+
+
+# 3MSO
+
+X3MSO_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = X3MSO_5.2, fill = treatment)) + 
+  geom_boxplot()
+
+X3MSO_by_pop
+
+# OH-Alkenyl
+
+OH.Alkenyl_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = OH.Alkenyl_6, fill = treatment)) + 
+  geom_boxplot()
+
+OH.Alkenyl_by_pop
+
+# 4MSO
+
+X4MSO_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = X4MSO_7.1, fill = treatment)) + 
+  geom_boxplot()
+
+X4MSO_by_pop
+
+# Allyl
+
+Allyl_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = Allyl_7.4, fill = treatment)) + 
+  geom_boxplot()
+
+Allyl_by_pop
+
+# 5MSO
+
+X5MSO_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = X5MSO_10.2, fill = treatment)) + 
+  geom_boxplot()
+
+X5MSO_by_pop
+
+# Butenyl
+
+Butenyl_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = Butenyl_12.1, fill = treatment)) + 
+  geom_boxplot()
+
+Butenyl_by_pop 
+
+# 3MT
+
+X3MT_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = X3MT_13.6, fill = treatment)) + 
+  geom_boxplot()
+
+X3MT_by_pop
+
+# MSOO
+
+MSOO_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = MSOO_13.8, fill = treatment)) + 
+  geom_boxplot()
+
+MSOO_by_pop
+
+# OH-I3M
+
+OHI3M_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = OH.I3M_15.1, fill = treatment)) + 
+  geom_boxplot()
+
+OHI3M_by_pop
+
+# 4MT
+
+X4MT_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = X4MT._15.5, fill = treatment)) + 
+  geom_boxplot()
+
+X4MT_by_pop
+
+# Flavonol 16
+
+Flavonol16_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = Flavonol_16.1, fill = treatment)) + 
+  geom_boxplot()
+
+Flavonol16_by_pop
+
+# I3M
+
+I3M_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = I3M_16.7, fill = treatment)) + 
+  geom_boxplot()
+
+I3M_by_pop
+
+# Flavonol 17
+
+Flavonol17_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = Flavonol_17.5, fill = treatment)) + 
+  geom_boxplot()
+
+Flavonol17_by_pop
+
+# Flavonol 18
+
+Flavonol18_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = Flavonol_18.5, fill = treatment)) + 
+  geom_boxplot()
+
+Flavonol18_by_pop
+
+# indole 
+
+Indole_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = Indole_18.8, fill = treatment)) + 
+  geom_boxplot()
+
+Indole_by_pop
+
+# total GSLs
+
+tgsl_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = totalGSL, fill = treatment)) + 
+  geom_boxplot()
+
+tgsl_by_pop
+
+# total indoles
+
+tindole_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = totalindole, fill = treatment)) + 
+  geom_boxplot()
+
+tindole_by_pop
+
+# total aliphatics
+
+taliphatic_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = totalaliphatic, fill = treatment)) + 
+  geom_boxplot()
+
+taliphatic_by_pop
+
+# total flavonoids
+
+tflav_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = totalflavonoid, fill = treatment)) + 
+  geom_boxplot()
+
+tflav_by_pop
+
+# shannon div
+
+shannon_by_pop <- ggplot(data = data, aes(x = reorder(Population, Elevation), y = shannon_diversity, fill = treatment)) + 
+  geom_boxplot()
+
+shannon_by_pop
+
+
+```
+
+
+## NMDS of all compounds
+
+```{r}
+
+mf_means_nmds <-  read.csv("./data/mf_means.csv") %>%
+  select("Population", "mf", "treatment", "X3MSO", "OHAlkenyl", "X4MSO", "Allyl", "X5MSO", "Butenyl", "X3MT", "MSOO", "OHI3M", "X4MT", "Flavonol16", "I3M", "Flavonol17", "Flavonol18", "Indole")
+#whatever order you put elect in is the order of the df, pop mf trt first
+
+
+### center and standardize data ----
+# standardizing the data (all will have variance = 1)
+# centering gives all a mean of 0
+head(mf_means_nmds)
+mf_means_nmds_scaling <- as.data.frame(scale(mf_means_nmds[4:18]))
+mf_means_nmds_scaled <- mf_means_nmds[1:3]
+mf_means_nmds_scaled[4:18] <- mf_means_nmds_scaling # merge two dataframes
+
+# create data frame that is just columns with scaled compounds and labels as colnames
+data_scaled2 = mf_means_nmds_scaled %>%
+  # make and ID variable
+  mutate(ID = paste(Population, treatment, mf, sep = "_")) %>%
+  # make rownames combo of pop, tmt, mf, and rep
+  column_to_rownames(var = "ID")  %>%
+  select(-Population, -treatment, -mf)
+
+# perform NMDS
+nmds_result5 <- metaMDS(data_scaled2, k = 5, distance = "gower")  # Adjust 'k' as needed (usually 2 or 3 dimensions)
+
+# look a stress
+nmds_result5 # 0.09
+stressplot(nmds_result5)
+
+# Assuming 'nmds_result' is your NMDS result object from 'metaMDS'
+scores <- scores(nmds_result5, display = "sites")  # Extract NMDS scores
+# Calculate correlations between original variables and NMDS scores
+correlations1 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 1]))
+correlations2 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 2]))
+correlations3 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 3]))
+correlations4 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 4]))
+correlations5 <- apply(data_scaled2, 2, function(x) cor(x, scores[, 5]))
+
+# Combine all correlations into a data frame
+correlation_table <- data.frame(
+  Variable = colnames(data_scaled2),
+  NMDS1 = correlations1,
+  NMDS2 = correlations2,
+  NMDS3 = correlations3,
+  NMDS4 = correlations4,
+  NMDS5 = correlations5
+)
+
+correlation_table
+
+####visualize NMDS ----
+
+elevation <- read.csv(file = "data/elevation.csv") %>%
+  mutate(Population = ifelse(Population == "YOSE10", "YO10", Population))
+
+mf_means_nmds_scaled_withel <- mf_means_nmds_scaled %>%
+  left_join(elevation, by = "Population") %>%
+  select(-c("Lat", "Long", "Seed.year"))
+
+# Fit environmental variables (loadings)
+env_fit <- envfit(nmds_result5, data_scaled2[1:15], permutations = 999)
+print(env_fit)
+
+# Extract environmental loadings
+arrow_data <- as.data.frame(scores(env_fit, display="vectors"))
+arrow_data$variable <- rownames(arrow_data)
+
+# Scale arrows (adjust 0.5 to any smaller/larger value)
+scaling_factor <- 0.5
+arrow_data$NMDS1 <- arrow_data$NMDS1 * scaling_factor
+arrow_data$NMDS2 <- arrow_data$NMDS2 * scaling_factor
+
+#create grouping variable
+all_groups = mf_means_nmds_scaled_withel %>%
+  select(Population, treatment, mf, Elevation)
+
+nmds_dist_scores = as.data.frame(scores(nmds_result5, "sites")) %>%
+  mutate(population = all_groups$Population, treatment = all_groups$treatment, mf = all_groups$mf, elevation = all_groups$Elevation)
+
+# plot it 
+nmds_dist_plot_trt = ggplot(data = nmds_dist_scores, aes(x = NMDS1, y= NMDS2)) +
+  geom_point(aes(colour = treatment), size= 5, alpha = 0.75)   + theme_bw() +
+  scale_color_manual(values = c("firebrick4" , "darkolivegreen4", "dodgerblue4")) +
+  scale_shape_manual(values = c(1,18))+
+  labs(color = "treatment", shape= "population") +
+  geom_segment(data=arrow_data, aes(x=0, y=0, xend=NMDS1, yend=NMDS2), 
+               arrow=arrow(), color="red") +
+  geom_text(data=arrow_data, aes(x=NMDS1, y=NMDS2, label=variable), 
+            color="red", hjust=0.5, vjust=0.5) 
+
+nmds_dist_plot_trt
+
+nmds_dist_plot_pop = ggplot(data = nmds_dist_scores, aes(x = NMDS1, y = NMDS2)) +
+  geom_point(aes(colour = elevation, shape = treatment), size = 5, alpha = 0.75) + 
+  geom_text_repel(aes(label = all_groups$Population), size = 3, max.overlaps = 10) +  # Add repelled labels
+  theme_bw() +
+  facet_wrap(~treatment) +
+  labs(color = "Elevation", shape = "Treatment") +
+  theme(legend.position = "right")  +
+  scale_color_gradient(low="orange", high="blue") + 
+  geom_segment(data=arrow_data, aes(x=0, y=0, xend=NMDS1, yend=NMDS2), 
+               arrow=arrow(), color="red") +
+  geom_text(data=arrow_data, aes(x=NMDS1, y=NMDS2, label=variable), 
+            color="red", hjust=0.5, vjust=0.5) 
+
+
+
+nmds_dist_plot_pop
+
+
+
+```
+
+## walkthrough linear models of compounds if time (pull up models script)
+
